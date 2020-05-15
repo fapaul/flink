@@ -28,9 +28,13 @@ import org.apache.flink.runtime.dispatcher.runner.DefaultDispatcherRunnerFactory
 import org.apache.flink.runtime.entrypoint.ClusterEntrypoint;
 import org.apache.flink.runtime.entrypoint.component.DefaultDispatcherResourceManagerComponentFactory;
 import org.apache.flink.runtime.entrypoint.component.DispatcherResourceManagerComponentFactory;
+import org.apache.flink.runtime.entrypoint.component.FileJobGraphRetriever;
 import org.apache.flink.runtime.resourcemanager.ResourceManagerFactory;
 import org.apache.flink.runtime.rest.JobRestEndpointFactory;
 
+import java.io.IOException;
+
+import static org.apache.flink.runtime.util.ClusterEntrypointUtils.tryFindUserLibDirectory;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -54,13 +58,28 @@ public class ApplicationClusterEntryPoint extends ClusterEntrypoint {
 	}
 
 	@Override
-	protected DispatcherResourceManagerComponentFactory createDispatcherResourceManagerComponentFactory(final Configuration configuration) {
+	protected DispatcherResourceManagerComponentFactory createDispatcherResourceManagerComponentFactory(final Configuration configuration) throws IOException {
+		if (shouldUseFileJobGraphRetriever(configuration)) {
+			return createFileRetrievalJobClusterDispatcherResourceManagerComponentFactory(configuration);
+		}
+		return createApplicationModeDispatcherResourceManagerComponentFactory(configuration);
+	}
+
+	private DispatcherResourceManagerComponentFactory createApplicationModeDispatcherResourceManagerComponentFactory(final Configuration configuration) {
 		return new DefaultDispatcherResourceManagerComponentFactory(
-				new DefaultDispatcherRunnerFactory(
-						ApplicationDispatcherLeaderProcessFactoryFactory
-								.create(configuration, SessionDispatcherFactory.INSTANCE, program)),
-				resourceManagerFactory,
-				JobRestEndpointFactory.INSTANCE);
+			new DefaultDispatcherRunnerFactory(
+				ApplicationDispatcherLeaderProcessFactoryFactory
+					.create(configuration, SessionDispatcherFactory.INSTANCE, program)),
+			resourceManagerFactory,
+			JobRestEndpointFactory.INSTANCE);
+	}
+
+	private DispatcherResourceManagerComponentFactory createFileRetrievalJobClusterDispatcherResourceManagerComponentFactory(final Configuration configuration) throws IOException {
+		return DefaultDispatcherResourceManagerComponentFactory.createJobComponentFactory(
+			resourceManagerFactory,
+			FileJobGraphRetriever.createFrom(
+				configuration,
+				tryFindUserLibDirectory().orElse(null)));
 	}
 
 	@Override
@@ -69,4 +88,9 @@ public class ApplicationClusterEntryPoint extends ClusterEntrypoint {
 			final ScheduledExecutor scheduledExecutor) {
 		return new MemoryArchivedExecutionGraphStore();
 	}
+
+	private static boolean shouldUseFileJobGraphRetriever(Configuration configuration) {
+		return configuration.containsKey(FileJobGraphRetriever.JOB_GRAPH_FILE_PATH.key());
+	}
+
 }
