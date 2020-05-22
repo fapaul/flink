@@ -50,6 +50,10 @@ case $SERVICE in
         CLASS_TO_RUN=org.apache.flink.container.entrypoint.StandaloneApplicationClusterEntryPoint
     ;;
 
+    (standalonejobgraph)
+        CLASS_TO_RUN=org.apache.flink.container.entrypoint.jobgraph.StandaloneJobGraphClusterEntryPoint
+    ;;
+
     (*)
         echo "Unknown service '${SERVICE}'. $USAGE."
         exit 1
