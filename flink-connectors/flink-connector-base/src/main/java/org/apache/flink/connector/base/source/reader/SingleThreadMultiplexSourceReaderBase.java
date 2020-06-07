@@ -42,14 +42,14 @@ public abstract class SingleThreadMultiplexSourceReaderBase<E, T, SplitT extends
 	public SingleThreadMultiplexSourceReaderBase(
 			FutureNotifier futureNotifier,
 			FutureCompletingBlockingQueue<RecordsWithSplitIds<E>> elementsQueue,
-			Supplier<SplitReader<E, SplitT>> splitFetcherSupplier,
+			Supplier<SplitReader<E, SplitT>> splitReaderSupplier,
 			RecordEmitter<E, T, SplitStateT> recordEmitter,
 			Configuration config,
 			SourceReaderContext context) {
 		super(
 				futureNotifier,
 				elementsQueue,
-				new SingleThreadFetcherManager<>(futureNotifier, elementsQueue, splitFetcherSupplier),
+				new SingleThreadFetcherManager<>(futureNotifier, elementsQueue, splitReaderSupplier),
 				recordEmitter,
 				config,
 				context);

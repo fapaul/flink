@@ -130,14 +130,13 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
 		ValidatingSourceOutput output = new ValidatingSourceOutput();
 		// Add a split to start the fetcher.
 		List<SplitT> splits = getSplits(NUM_SPLITS, NUM_RECORDS_PER_SPLIT, Boundedness.CONTINUOUS_UNBOUNDED);
-		// Poll 5 records. That means split 0 and 1 will at index 2, split 1 will at index 1.
 		try (SourceReader<Integer, SplitT> reader =
 				consumeRecords(splits, output, NUM_SPLITS * NUM_RECORDS_PER_SPLIT)) {
 			List<SplitT> state = reader.snapshotState();
 			assertEquals("The snapshot should only have 10 splits. ", NUM_SPLITS, state.size());
 			for (int i = 0; i < NUM_SPLITS; i++) {
 				assertEquals("The first four splits should have been fully consumed.",
-						NUM_RECORDS_PER_SPLIT, getIndex(state.get(i)));
+						NUM_RECORDS_PER_SPLIT, getNextRecordIndex(state.get(i)));
 			}
 		}
 	}
@@ -150,7 +149,7 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
 
 	protected abstract SplitT getSplit(int splitId, int numRecords, Boundedness boundedness);
 
-	protected abstract long getIndex(SplitT split);
+	protected abstract long getNextRecordIndex(SplitT split);
 
 	private SourceReader<Integer, SplitT> consumeRecords(
 			List<SplitT> splits,

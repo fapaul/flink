@@ -130,7 +130,7 @@ public class SourceReaderBaseTest extends SourceReaderTestBase<MockSourceSplit> 
 	}
 
 	@Override
-	protected long getIndex(MockSourceSplit split) {
+	protected long getNextRecordIndex(MockSourceSplit split) {
 		return split.index();
 	}
 

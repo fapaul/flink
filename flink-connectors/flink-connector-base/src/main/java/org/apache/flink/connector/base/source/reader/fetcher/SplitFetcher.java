@@ -26,6 +26,7 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -87,7 +88,7 @@ public class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
 					splitReader,
 					elementsQueue,
 					ids -> {
-						ids.forEach(assignedSplits::remove);
+						ids.forEach(this::removeAssignedSplit);
 						updateIsIdle();
 					}, runningThread);
 			while (!closed.get()) {
@@ -141,6 +142,9 @@ public class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
 				throw new RuntimeException(String.format(
 						"SplitFetcher thread %d interrupted while polling the records", id), ie);
 			}
+		} catch (IOException ioe) {
+			throw new RuntimeException(String.format(
+					"SplitFetcher thread %d received unexpected exception while polling the records", id), ioe);
 		}
 		// If the task is not null that means this task needs to be re-executed. This only
 		// happens when the task is the fetching task or the task was interrupted.
@@ -281,6 +285,12 @@ public class SplitFetcher<E, SplitT extends SourceSplit> implements Runnable {
 
 	private boolean isRunningTask(SplitFetcherTask task) {
 		return task != null && task != WAKEUP_TASK;
+	}
+
+	private void removeAssignedSplit(String splitId) {
+		assignedSplits.remove(splitId);
+		LOG.debug("Removed {} split from assigned splits. The assigned splits now are {}", splitId, assignedSplits);
+
 	}
 
 	//--------------------- Helper class ------------------
