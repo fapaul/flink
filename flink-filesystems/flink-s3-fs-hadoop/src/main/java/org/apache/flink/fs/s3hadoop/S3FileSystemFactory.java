@@ -40,7 +40,7 @@ public class S3FileSystemFactory extends AbstractS3FileSystemFactory {
 
 	private static final Logger LOG = LoggerFactory.getLogger(S3FileSystemFactory.class);
 
-	private static final String[] FLINK_CONFIG_PREFIXES = { "s3.", "s3a.", "fs.s3a." };
+	private static final String[] FLINK_CONFIG_PREFIXES = {"s3a.", "fs.s3a." };
 
 	private static final String[][] MIRRORED_CONFIG_KEYS = {
 			{ "fs.s3a.access-key", "fs.s3a.access.key" },
@@ -54,7 +54,7 @@ public class S3FileSystemFactory extends AbstractS3FileSystemFactory {
 
 	@Override
 	public String getScheme() {
-		return "s3";
+		return "s3a";
 	}
 
 	@VisibleForTesting

@@ -241,7 +241,6 @@ public abstract class FileSystem {
 			.put("wasb", "flink-fs-azure-hadoop")
 			.put("wasbs", "flink-fs-azure-hadoop")
 			.put("oss", "flink-oss-fs-hadoop")
-			.put("s3", "flink-s3-fs-hadoop")
 			.put("s3", "flink-s3-fs-presto")
 			.put("s3a", "flink-s3-fs-hadoop")
 			.put("s3p", "flink-s3-fs-presto")
