@@ -31,6 +31,7 @@ import org.apache.flink.connectors.kafka.source.enumerator.subscriber.KafkaSubsc
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.function.ThrowingRunnable;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -171,7 +172,6 @@ public class KafkaSourceEnumerator implements SplitEnumerator<KafkaPartitionSpli
 		return closeWithTimeout(
 				"KafkaSourceEnumerator",
 				(ThrowingRunnable<Exception>) () -> {
-					context.cancelAsyncCalls();
 					consumer.close();
 					adminClient.close();
 				},
@@ -296,6 +296,9 @@ public class KafkaSourceEnumerator implements SplitEnumerator<KafkaPartitionSpli
 		}
 	}
 
+	/**
+	 * The implementation for offsets retriever with a consumer and an admin client.
+	 */
 	@VisibleForTesting
 	public static class PartitionOffsetsRetrieverImpl
 			implements OffsetsInitializer.PartitionOffsetsRetriever, AutoCloseable {

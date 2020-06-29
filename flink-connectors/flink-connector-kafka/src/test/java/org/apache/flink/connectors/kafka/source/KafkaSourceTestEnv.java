@@ -20,6 +20,7 @@ package org.apache.flink.connectors.kafka.source;
 
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
 import org.apache.flink.streaming.connectors.kafka.KafkaTestBase;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.admin.RecordsToDelete;
@@ -88,7 +89,7 @@ public class KafkaSourceTestEnv extends KafkaTestBase {
 		Properties props = new Properties();
 		props.putAll(standardProps);
 		props.setProperty(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
-		props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,deserializerClass.getName());
+		props.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializerClass.getName());
 		props.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializerClass.getName());
 		return props;
 	}
@@ -113,7 +114,7 @@ public class KafkaSourceTestEnv extends KafkaTestBase {
 	}
 
 	/**
-	 * For a given partition {@code TOPIC-PARTITION} the {@code i}-th records looks like following:
+	 * For a given partition {@code TOPIC-PARTITION} the {@code i}-th records looks like following.
 	 *
 	 * <pre>{@code
 	 *     topic: TOPIC
@@ -152,7 +153,6 @@ public class KafkaSourceTestEnv extends KafkaTestBase {
 				.map(pi -> new TopicPartition(pi.topic(), pi.partition()))
 				.collect(Collectors.toList());
 	}
-
 
 	public static Map<TopicPartition, Long> getEarliestOffsets(List<TopicPartition> partitions) {
 		Map<TopicPartition, Long> earliestOffsets = new HashMap<>();

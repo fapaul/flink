@@ -19,6 +19,7 @@
 package org.apache.flink.connectors.kafka.source.split;
 
 import org.apache.flink.core.io.SimpleVersionedSerializer;
+
 import org.apache.kafka.common.TopicPartition;
 
 import java.io.ByteArrayInputStream;
@@ -55,7 +56,7 @@ public class KafkaPartitionSplitSerializer implements SimpleVersionedSerializer<
 	@Override
 	public KafkaPartitionSplit deserialize(int version, byte[] serialized) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
-			 DataInputStream in = new DataInputStream(bais)) {
+				DataInputStream in = new DataInputStream(bais)) {
 			String topic = in.readUTF();
 			int partition = in.readInt();
 			long offset = in.readLong();

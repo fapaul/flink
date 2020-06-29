@@ -20,6 +20,7 @@ package org.apache.flink.connectors.kafka.source.split;
 
 import org.apache.flink.api.connector.source.SourceSplit;
 import org.apache.flink.util.FlinkRuntimeException;
+
 import org.apache.kafka.common.TopicPartition;
 
 import java.util.Arrays;

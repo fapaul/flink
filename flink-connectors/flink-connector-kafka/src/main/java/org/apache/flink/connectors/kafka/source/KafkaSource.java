@@ -33,21 +33,27 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureNotif
 import org.apache.flink.connectors.kafka.source.enumerator.KafkaSourceEnumState;
 import org.apache.flink.connectors.kafka.source.enumerator.KafkaSourceEnumStateSerializer;
 import org.apache.flink.connectors.kafka.source.enumerator.KafkaSourceEnumerator;
+import org.apache.flink.connectors.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connectors.kafka.source.enumerator.subscriber.KafkaSubscriber;
 import org.apache.flink.connectors.kafka.source.reader.KafkaPartitionSplitReader;
 import org.apache.flink.connectors.kafka.source.reader.KafkaRecordEmitter;
 import org.apache.flink.connectors.kafka.source.reader.KafkaSourceReader;
-import org.apache.flink.connectors.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connectors.kafka.source.reader.deserializer.KafkaDeserializer;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.function.Supplier;
 
+/**
+ * The Source implementation of Kafka.
+ *
+ * @param <OUT> the output type of the source.
+ */
 public class KafkaSource<OUT> implements Source<OUT, KafkaPartitionSplit, KafkaSourceEnumState> {
 	private static final long serialVersionUID = -8755372893283732098L;
 	// Users can choose only one of the following ways to specify the topics to consume from.

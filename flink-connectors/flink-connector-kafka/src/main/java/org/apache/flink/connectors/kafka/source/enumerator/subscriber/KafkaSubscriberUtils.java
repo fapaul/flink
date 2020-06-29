@@ -46,12 +46,12 @@ class KafkaSubscriberUtils {
 		}
 	}
 
-	static void maybeLog(Set<TopicPartition> newPartitions, Set<TopicPartition> removedPartitions, Logger LOG) {
+	static void maybeLog(Set<TopicPartition> newPartitions, Set<TopicPartition> removedPartitions, Logger logger) {
 		if (!removedPartitions.isEmpty()) {
-			LOG.warn("The following partitions have been removed from the Kafka cluster. {}", removedPartitions);
+			logger.warn("The following partitions have been removed from the Kafka cluster. {}", removedPartitions);
 		}
 		if (!newPartitions.isEmpty()) {
-			LOG.info("The following partitions have been added to the Kafka cluster. {}", newPartitions);
+			logger.info("The following partitions have been added to the Kafka cluster. {}", newPartitions);
 		}
 	}
 }

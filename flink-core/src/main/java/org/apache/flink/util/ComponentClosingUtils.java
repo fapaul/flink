@@ -21,7 +21,6 @@ package org.apache.flink.util;
 import org.apache.flink.util.function.ThrowingRunnable;
 
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 

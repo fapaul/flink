@@ -40,12 +40,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 /**
- * A mock class for {@link SplitEnumeratorContext}
+ * A mock class for {@link SplitEnumeratorContext}.
  */
 public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements SplitEnumeratorContext<SplitT> {
 	private final Map<Integer, List<SourceEvent>> sentSourceEvent;
@@ -53,6 +54,7 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 	private final List<SplitsAssignment<SplitT>> splitsAssignmentSequence;
 	private final ExecutorService workerExecutor;
 	private final ExecutorService mainExecutor;
+	private final TestingExecutorThreadFactory mainThreadFactory;
 	private final AtomicReference<Throwable> errorInWorkerThread;
 	private final AtomicReference<Throwable> errorInMainThread;
 	private final BlockingQueue<Callable<Future<?>>> oneTimeCallables;
@@ -70,8 +72,9 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 		this.errorInMainThread = new AtomicReference<>();
 		this.oneTimeCallables = new ArrayBlockingQueue<>(100);
 		this.periodicCallables = Collections.synchronizedList(new ArrayList<>());
-		this.workerExecutor = getExecutor("SplitEnumerator-worker", errorInWorkerThread);
-		this.mainExecutor = getExecutor("SplitEnumerator-main", errorInMainThread);
+		this.mainThreadFactory = getThreadFactory("SplitEnumerator-main", errorInMainThread);
+		this.workerExecutor = getExecutor(getThreadFactory("SplitEnumerator-worker", errorInWorkerThread));
+		this.mainExecutor = getExecutor(mainThreadFactory);
 		this.stoppedAcceptAsyncCalls = new AtomicBoolean(false);
 	}
 
@@ -83,8 +86,12 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 	@Override
 	public void sendEventToSourceReader(int subtaskId, SourceEvent event) {
 		try {
-			workerExecutor.submit(() ->
-					sentSourceEvent.computeIfAbsent(subtaskId, id -> new ArrayList<>()).add(event)).get();
+			if (!mainThreadFactory.isCurrentThreadMainExecutorThread()) {
+				mainExecutor.submit(() ->
+						sentSourceEvent.computeIfAbsent(subtaskId, id -> new ArrayList<>()).add(event)).get();
+			} else {
+				sentSourceEvent.computeIfAbsent(subtaskId, id -> new ArrayList<>()).add(event);
+			}
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to assign splits", e);
 		}
@@ -106,9 +113,9 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 	}
 
 	@Override
-	public <T> boolean callAsync(Callable<T> callable, BiConsumer<T, Throwable> handler) {
+	public <T> void callAsync(Callable<T> callable, BiConsumer<T, Throwable> handler) {
 		if (stoppedAcceptAsyncCalls.get()) {
-			return false;
+			return;
 		}
 		oneTimeCallables.add(() ->
 				workerExecutor.submit(wrap(errorInWorkerThread, () -> {
@@ -119,13 +126,12 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 						handler.accept(null, t);
 					}
 				})));
-		return true;
 	}
 
 	@Override
-	public <T> boolean callAsync(Callable<T> callable, BiConsumer<T, Throwable> handler, long initialDelay, long period) {
+	public <T> void callAsync(Callable<T> callable, BiConsumer<T, Throwable> handler, long initialDelay, long period) {
 		if (stoppedAcceptAsyncCalls.get()) {
-			return false;
+			return;
 		}
 		periodicCallables.add(() ->
 				workerExecutor.submit(wrap(errorInWorkerThread, () -> {
@@ -136,11 +142,9 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 						handler.accept(null, t);
 					}
 				})));
-		return true;
 	}
 
-	@Override
-	public void cancelAsyncCalls() {
+	public void close() {
 		stoppedAcceptAsyncCalls.set(true);
 	}
 
@@ -191,16 +195,12 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 		}
 	}
 
-	private static ExecutorService getExecutor(String threadName, AtomicReference<Throwable> error) {
-		return Executors.newSingleThreadScheduledExecutor(r -> {
-			Thread t = new Thread(r, threadName);
-			t.setUncaughtExceptionHandler((t1, e) -> {
-				if (!error.compareAndSet(null, e)) {
-					error.get().addSuppressed(e);
-				}
-			});
-			return t;
-		});
+	private static TestingExecutorThreadFactory getThreadFactory(String threadName, AtomicReference<Throwable> error) {
+		return new TestingExecutorThreadFactory(threadName, error);
+	}
+
+	private static ExecutorService getExecutor(TestingExecutorThreadFactory threadFactory) {
+		return Executors.newSingleThreadScheduledExecutor(threadFactory);
 	}
 
 	private static ThrowableCatchingRunnable wrap(AtomicReference<Throwable> error, Runnable r) {
@@ -209,5 +209,41 @@ public class MockSplitEnumeratorContext<SplitT extends SourceSplit> implements S
 				error.get().addSuppressed(t);
 			}
 		}, r);
+	}
+
+	// -------- private class -----------
+
+	/**
+	 * A thread factory class that provides some helper methods.
+	 */
+	public static class TestingExecutorThreadFactory implements ThreadFactory {
+		private final String coordinatorThreadName;
+		private final AtomicReference<Throwable> error;
+		private Thread t;
+
+		TestingExecutorThreadFactory(String coordinatorThreadName, AtomicReference<Throwable> error) {
+			this.coordinatorThreadName = coordinatorThreadName;
+			this.error = error;
+			this.t = null;
+		}
+
+		@Override
+		public Thread newThread(Runnable r) {
+			if (t != null) {
+				throw new IllegalStateException("Should never happen. This factory should only be used by a " +
+						"SingleThreadExecutor.");
+			}
+			t = new Thread(r, coordinatorThreadName);
+			t.setUncaughtExceptionHandler((t1, e) -> {
+				if (!error.compareAndSet(null, e)) {
+					error.get().addSuppressed(e);
+				}
+			});
+			return t;
+		}
+
+		boolean isCurrentThreadMainExecutorThread() {
+			return Thread.currentThread() == t;
+		}
 	}
 }

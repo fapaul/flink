@@ -18,7 +18,6 @@
 
 package org.apache.flink.connectors.kafka.source.enumerator.subscriber;
 
-
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;

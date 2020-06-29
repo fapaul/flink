@@ -29,6 +29,7 @@ import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -89,7 +90,7 @@ public class KafkaPartitionSplitReader<T> implements SplitReader<Tuple3<T, Long,
 		KafkaPartitionSplitRecords<Tuple3<T, Long, Long>> recordsBySplits = new KafkaPartitionSplitRecords<>();
 		ConsumerRecords<byte[], byte[]> consumerRecords;
 		try {
-			 consumerRecords = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+			consumerRecords = consumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 		} catch (WakeupException we) {
 			return recordsBySplits;
 		}
@@ -123,8 +124,8 @@ public class KafkaPartitionSplitReader<T> implements SplitReader<Tuple3<T, Long,
 					// Finish the split because there might not be any message after this point. Keep polling
 					// will just block forever.
 					if (consumerRecord.offset() == stoppingOffset - 1) {
-						 finishSplitAtRecord(tp, stoppingOffset, consumerRecord.offset(),
-								 finishedPartitions, recordsBySplits);
+						finishSplitAtRecord(tp, stoppingOffset, consumerRecord.offset(),
+								finishedPartitions, recordsBySplits);
 					}
 				} catch (Exception e) {
 					throw new IOException("Failed to deserialize consumer record due to", e);

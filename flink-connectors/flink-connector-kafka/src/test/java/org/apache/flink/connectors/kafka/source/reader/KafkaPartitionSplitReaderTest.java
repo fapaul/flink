@@ -24,6 +24,7 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.apache.flink.connectors.kafka.source.KafkaSourceTestEnv;
 import org.apache.flink.connectors.kafka.source.reader.deserializer.KafkaDeserializer;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;

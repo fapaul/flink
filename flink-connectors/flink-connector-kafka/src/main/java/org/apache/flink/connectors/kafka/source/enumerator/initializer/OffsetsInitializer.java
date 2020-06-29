@@ -20,6 +20,7 @@ package org.apache.flink.connectors.kafka.source.enumerator.initializer;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
+
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -78,23 +79,23 @@ public interface OffsetsInitializer extends Serializable {
 		 * The group id should be the set for {@link org.apache.flink.connectors.kafka.source.KafkaSource KafkaSource}
 		 * before invoking this method. Otherwise an {@code IllegalStateException} will be thrown.
 		 *
-		 * @see KafkaAdminClient#listConsumerGroupOffsets(String, ListConsumerGroupOffsetsOptions).
+		 * @see KafkaAdminClient#listConsumerGroupOffsets(String, ListConsumerGroupOffsetsOptions)
 		 * @throws IllegalStateException if the group id is not set for the {@code KafkaSource}.
 		 */
 		Map<TopicPartition, Long> committedOffsets(Collection<TopicPartition> partitions);
 
 		/**
-		 * @see KafkaConsumer#endOffsets(Collection).
+		 * @see KafkaConsumer#endOffsets(Collection)
 		 */
 		Map<TopicPartition, Long> endOffsets(Collection<TopicPartition> partitions);
 
 		/**
-		 * @see KafkaConsumer#beginningOffsets(Collection).
+		 * @see KafkaConsumer#beginningOffsets(Collection)
 		 */
 		Map<TopicPartition, Long> beginningOffsets(Collection<TopicPartition> partitions);
 
 		/**
-		 * @see KafkaConsumer#offsetsForTimes(Map).
+		 * @see KafkaConsumer#offsetsForTimes(Map)
 		 */
 		Map<TopicPartition, OffsetAndTimestamp> offsetsForTimes(Map<TopicPartition, Long> timestampsToSearch);
 	}

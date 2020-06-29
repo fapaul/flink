@@ -28,6 +28,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.util.Collector;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -79,7 +80,7 @@ public class KafkaSourceITCase {
 
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(1);
-		DataStream<PartitionAndValue> stream = env.continuousSource(
+		DataStream<PartitionAndValue> stream = env.fromSource(
 				source,
 				WatermarkStrategy.noWatermarks(),
 				"testBasicRead",

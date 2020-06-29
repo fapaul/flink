@@ -25,9 +25,9 @@ import org.apache.flink.connectors.kafka.source.KafkaSourceTestEnv;
 import org.apache.flink.connectors.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connectors.kafka.source.enumerator.subscriber.KafkaSubscriber;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
-
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.AfterClass;
@@ -43,13 +43,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -155,7 +152,7 @@ public class KafkaEnumeratorTest {
 	public void testDiscoverPartitionsPeriodically() throws Throwable {
 		MockSplitEnumeratorContext<KafkaPartitionSplit> context = new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
 		try (KafkaSourceEnumerator enumerator =
-					 createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, INCLUDE_DYNAMIC_TOPIC);
+					createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, INCLUDE_DYNAMIC_TOPIC);
 				AdminClient adminClient = KafkaSourceTestEnv.getAdminClient()) {
 
 			startEnumeratorAndRegisterReaders(context, enumerator);
@@ -224,7 +221,7 @@ public class KafkaEnumeratorTest {
 
 		final MockSplitEnumeratorContext<KafkaPartitionSplit> context2 = new MockSplitEnumeratorContext<>(NUM_SUBTASKS);
 		try (KafkaSourceEnumerator enumerator =
-					 createEnumerator(context2, ENABLE_PERIODIC_PARTITION_DISCOVERY, PRE_EXISTING_TOPICS, preexistingAssignments)) {
+					createEnumerator(context2, ENABLE_PERIODIC_PARTITION_DISCOVERY, PRE_EXISTING_TOPICS, preexistingAssignments)) {
 			enumerator.start();
 			context2.runPeriodicCallable(PARTITION_DISCOVERY_CALLABLE_INDEX);
 
@@ -234,17 +231,6 @@ public class KafkaEnumeratorTest {
 			registerReader(context2, enumerator, READER1);
 			verifyLastReadersAssignments(context2, Collections.singleton(READER1), PRE_EXISTING_TOPICS, 1);
 		}
-	}
-
-	@Test(timeout = 30000L)
-	public void testBoundedCloseTime() throws IOException {
-		MockSplitEnumeratorContext<KafkaPartitionSplit> context = new BlockingClosingContext(NUM_SUBTASKS);
-		KafkaSourceEnumerator enumerator = createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY);
-		enumerator.start();
-
-		Optional<Throwable> closingError = enumerator.close(1L);
-		assertTrue(closingError.isPresent());
-		assertTrue(closingError.get() instanceof TimeoutException);
 	}
 
 	// -------------- some common startup sequence ---------------
@@ -389,7 +375,7 @@ public class KafkaEnumeratorTest {
 		}
 
 		@Override
-		public void cancelAsyncCalls() {
+		public void close() {
 			try {
 				Thread.sleep(Long.MAX_VALUE);
 			} catch (InterruptedException e) {

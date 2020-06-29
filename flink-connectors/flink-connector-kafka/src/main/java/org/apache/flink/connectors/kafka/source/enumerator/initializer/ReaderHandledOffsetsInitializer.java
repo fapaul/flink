@@ -38,7 +38,7 @@ class ReaderHandledOffsetsInitializer implements OffsetsInitializer {
 	private final OffsetResetStrategy offsetResetStrategy;
 
 	/**
-	 * The only valid value for startingOffset is following:
+	 * The only valid value for startingOffset is following.
 	 * {@link org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit#EARLIEST_OFFSET EARLIEST_OFFSET},
 	 * {@link org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit#LATEST_OFFSET LATEST_OFFSET},
 	 * {@link org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit#COMMITTED_OFFSET COMMITTED_OFFSET}

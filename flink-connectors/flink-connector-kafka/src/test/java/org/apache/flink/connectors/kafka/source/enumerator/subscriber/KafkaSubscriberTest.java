@@ -19,6 +19,7 @@
 package org.apache.flink.connectors.kafka.source.enumerator.subscriber;
 
 import org.apache.flink.connectors.kafka.source.KafkaSourceTestEnv;
+
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.AfterClass;
@@ -35,7 +36,7 @@ import java.util.regex.Pattern;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Unit tests for {@link KafkaSubscriber}
+ * Unit tests for {@link KafkaSubscriber}.
  */
 public class KafkaSubscriberTest {
 	private static final String TOPIC1 = "topic1";

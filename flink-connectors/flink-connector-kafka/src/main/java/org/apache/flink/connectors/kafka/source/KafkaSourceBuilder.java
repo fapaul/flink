@@ -22,6 +22,7 @@ import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.connectors.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connectors.kafka.source.enumerator.subscriber.KafkaSubscriber;
 import org.apache.flink.connectors.kafka.source.reader.deserializer.KafkaDeserializer;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;

@@ -116,7 +116,7 @@ public class SerdeUtils {
 				int subtaskId = in.readInt();
 				int numAssignedSplits = in.readInt();
 				C assignedSplits = collectionSupplier.apply(numAssignedSplits);
-				for (int j = 0; j< numAssignedSplits; j++) {
+				for (int j = 0; j < numAssignedSplits; j++) {
 					int serializedSplitSize = in.readInt();
 					byte[] serializedSplit = new byte[serializedSplitSize];
 					in.readFully(serializedSplit);

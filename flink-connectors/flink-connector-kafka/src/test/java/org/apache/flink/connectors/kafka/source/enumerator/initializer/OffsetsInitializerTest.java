@@ -21,6 +21,7 @@ package org.apache.flink.connectors.kafka.source.enumerator.initializer;
 import org.apache.flink.connectors.kafka.source.KafkaSourceTestEnv;
 import org.apache.flink.connectors.kafka.source.enumerator.KafkaSourceEnumerator;
 import org.apache.flink.connectors.kafka.source.split.KafkaPartitionSplit;
+
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.TopicPartition;

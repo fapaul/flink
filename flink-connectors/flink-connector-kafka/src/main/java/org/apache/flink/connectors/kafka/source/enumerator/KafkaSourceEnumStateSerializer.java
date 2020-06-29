@@ -41,7 +41,6 @@ public class KafkaSourceEnumStateSerializer implements SimpleVersionedSerializer
 		return CURRENT_VERSION;
 	}
 
-
 	@Override
 	public byte[] serialize(KafkaSourceEnumState enumState) throws IOException {
 		return SerdeUtils.serializeSplitAssignments(
