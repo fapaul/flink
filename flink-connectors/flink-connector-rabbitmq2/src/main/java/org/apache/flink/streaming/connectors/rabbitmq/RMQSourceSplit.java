@@ -21,9 +21,12 @@ package org.apache.flink.streaming.connectors.rabbitmq;
 
 import org.apache.flink.api.connector.source.SourceSplit;
 
+/**
+ */
 public class RMQSourceSplit implements SourceSplit {
+
 	@Override
 	public String splitId() {
-		return null;
+		return "test";
 	}
 }

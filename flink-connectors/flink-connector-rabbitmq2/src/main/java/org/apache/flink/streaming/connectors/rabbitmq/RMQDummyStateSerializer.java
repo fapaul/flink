@@ -23,6 +23,8 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.IOException;
 
+/**
+ */
 public class RMQDummyStateSerializer implements SimpleVersionedSerializer<RMQSourceState> {
 	@Override
 	public int getVersion() {

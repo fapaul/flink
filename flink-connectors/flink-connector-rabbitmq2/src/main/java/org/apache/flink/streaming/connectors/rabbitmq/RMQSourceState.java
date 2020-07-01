@@ -19,5 +19,7 @@
 
 package org.apache.flink.streaming.connectors.rabbitmq;
 
+/**
+ */
 public class RMQSourceState {
 }

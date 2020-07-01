@@ -31,8 +31,8 @@ import com.rabbitmq.client.QueueingConsumer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,27 +41,31 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * @param <OUT>
+ */
 public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSourceSplit> {
 
 	private static final boolean AUTO_ACK = false;
 
 	private final Channel channel;
 	private final QueueingConsumer consumer;
-	private final String queueName;
 	private final DeserializationSchema<OUT> schema;
 
-
 	public RMQSplitReader(String queueName, Channel channel, DeserializationSchema<OUT> schema) {
-		this.queueName = queueName;
 		this.schema = schema;
 		this.channel = channel;
 		this.consumer = new QueueingConsumer(channel);
+		try {
+			this.channel.txSelect();
+			channel.basicConsume(queueName, AUTO_ACK, consumer);
+		} catch (IOException e) {
+			throw new RuntimeException("Could set up transaction mode for RMQ channel", e);
+		}
 	}
 
 	@Override
 	public RecordsWithSplitIds<Tuple2<OUT, Long>> fetch() throws InterruptedException, IOException {
-		this.channel.txSelect();
-		channel.basicConsume(queueName, AUTO_ACK, consumer);
 		QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 		long timestamp = delivery.getProperties().getTimestamp().getTime();
 		SimpleCollector<OUT> collector = new SimpleCollector<>();
@@ -69,7 +73,7 @@ public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSo
 		RMQDummySplitRecords<OUT> recordsWithSplitIds = new RMQDummySplitRecords<>();
 
 		List<Tuple2<OUT, Long>> tuples = collector.getRecords().stream()
-			.map((record) -> new Tuple2(record, timestamp))
+			.map((record) -> new Tuple2<>(record, timestamp))
 			.collect(Collectors.toList());
 
 		channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
@@ -81,7 +85,7 @@ public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSo
 
 	@Override
 	public void handleSplitsChanges(Queue<SplitsChange<RMQSourceSplit>> splitsChanges) {
-
+		splitsChanges.poll();
 	}
 
 	@Override
@@ -92,7 +96,7 @@ public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSo
 	private static class RMQDummySplitRecords<OUT> implements RecordsWithSplitIds<Tuple2<OUT, Long>> {
 
 		private static final String SPLIT_ID = "test";
-		private static final Collection<String> SPLITS_IDS = Arrays.asList(SPLIT_ID);
+		private static final Collection<String> SPLITS_IDS = Collections.singletonList(SPLIT_ID);
 
 		private final Set<String> finishedSplits;
 		private final Map<String, Collection<Tuple2<OUT, Long>>> recordsBySplits;
@@ -115,7 +119,7 @@ public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSo
 
 		@Override
 		public Set<String> finishedSplits() {
-			return new HashSet<>();
+			return finishedSplits;
 		}
 
 		public void addRecords(List<Tuple2<OUT, Long>> records) {
@@ -138,10 +142,6 @@ public class RMQSplitReader<OUT> implements SplitReader<Tuple2<OUT, Long>, RMQSo
 
 		private List<T> getRecords() {
 			return records;
-		}
-
-		private void reset() {
-			records.clear();
 		}
 	}
 }

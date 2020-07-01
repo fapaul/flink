@@ -38,6 +38,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * @param <OUT>
+ */
 public class RMQSourceReader<OUT> extends SingleThreadMultiplexSourceReaderBase<Tuple2<OUT, Long>, OUT, RMQSourceSplit, RMQSourceState> {
 
 	private final Channel channel;

@@ -20,6 +20,7 @@
 package org.apache.flink.streaming.connectors.rabbitmq;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.connector.source.SourceReader;
@@ -27,6 +28,7 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
@@ -43,7 +45,7 @@ import java.util.function.Supplier;
  *
  * @param <OUT>
  */
-public class RMQSource<OUT> implements Source<OUT, RMQSourceSplit, RMQSourceState> {
+public class RMQSource<OUT> implements Source<OUT, RMQSourceSplit, RMQSourceState>, ResultTypeQueryable<OUT> {
 
 	private final RMQConnectionConfig rmqConnectionConfig;
 	private final String queueName;
@@ -80,18 +82,18 @@ public class RMQSource<OUT> implements Source<OUT, RMQSourceSplit, RMQSourceStat
 				recordEmitter,
 				readerContext);
 		} catch (Exception e) {
-			throw new RuntimeException("Could not set up Channel to RMQ.");
+			throw new RuntimeException("Could not set up Channel to RMQ.", e);
 		}
 	}
 
 	@Override
 	public SplitEnumerator<RMQSourceSplit, RMQSourceState> createEnumerator(SplitEnumeratorContext<RMQSourceSplit> enumContext) {
-		return new RMQSourceEnumerator();
+		return new RMQSourceEnumerator(enumContext);
 	}
 
 	@Override
 	public SplitEnumerator<RMQSourceSplit, RMQSourceState> restoreEnumerator(SplitEnumeratorContext<RMQSourceSplit> enumContext, RMQSourceState checkpoint) throws IOException {
-		return new RMQSourceEnumerator();
+		return new RMQSourceEnumerator(enumContext);
 	}
 
 	@Override
@@ -117,5 +119,10 @@ public class RMQSource<OUT> implements Source<OUT, RMQSourceSplit, RMQSourceStat
 
 	private void declareQueueDefaults(Channel channel, String queueName) throws IOException {
 		channel.queueDeclare(queueName, true, false, false, null);
+	}
+
+	@Override
+	public TypeInformation<OUT> getProducedType() {
+		return deserializationSchema.getProducedType();
 	}
 }

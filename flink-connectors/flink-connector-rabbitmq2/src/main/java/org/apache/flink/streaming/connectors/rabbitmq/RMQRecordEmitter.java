@@ -23,6 +23,9 @@ import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 
+/**
+ * @param <OUT>
+ */
 public class RMQRecordEmitter<OUT> implements RecordEmitter<Tuple2<OUT, Long>, OUT, RMQSourceState> {
 
 	@Override

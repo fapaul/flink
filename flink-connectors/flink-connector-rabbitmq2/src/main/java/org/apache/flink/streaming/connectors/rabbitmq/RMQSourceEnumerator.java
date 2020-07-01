@@ -21,14 +21,30 @@ package org.apache.flink.streaming.connectors.rabbitmq;
 
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SplitEnumerator;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.api.connector.source.SplitsAssignment;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+/**
+ */
 public class RMQSourceEnumerator implements SplitEnumerator<RMQSourceSplit, RMQSourceState> {
+
+	private final SplitEnumeratorContext<RMQSourceSplit> context;
+
+	private final Map<Integer, List<RMQSourceSplit>> readerIdToSplitAssignment;
+
+	RMQSourceEnumerator(SplitEnumeratorContext<RMQSourceSplit> context) {
+		this.context = context;
+		this.readerIdToSplitAssignment = new HashMap<>();
+	}
+
 	@Override
 	public void start() {
-
 	}
 
 	@Override
@@ -43,7 +59,8 @@ public class RMQSourceEnumerator implements SplitEnumerator<RMQSourceSplit, RMQS
 
 	@Override
 	public void addReader(int subtaskId) {
-
+		readerIdToSplitAssignment.put(subtaskId, Collections.singletonList(new RMQSourceSplit()));
+		context.assignSplits(new SplitsAssignment<>(readerIdToSplitAssignment));
 	}
 
 	@Override

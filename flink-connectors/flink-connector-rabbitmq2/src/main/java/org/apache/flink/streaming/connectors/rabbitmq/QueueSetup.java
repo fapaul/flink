@@ -23,6 +23,8 @@ import com.rabbitmq.client.Channel;
 
 import java.io.IOException;
 
+/**
+ */
 public interface QueueSetup {
-    void setUp(Channel channel, String queueName) throws IOException;
+	void setUp(Channel channel, String queueName) throws IOException;
 }
