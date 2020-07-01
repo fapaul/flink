@@ -32,6 +32,7 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureNotif
 
 import com.rabbitmq.client.Channel;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -70,6 +71,11 @@ public class RMQSourceReader<OUT> extends SingleThreadMultiplexSourceReaderBase<
 
 	@Override
 	public List<RMQSourceSplit> snapshotState() {
+		try {
+			channel.txCommit();
+		} catch (IOException e) {
+			throw new RuntimeException("Messages could not be acknowledged during checkpoint creation.", e);
+		}
 		return new ArrayList<RMQSourceSplit>();
 	}
 }
