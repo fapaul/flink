@@ -39,6 +39,7 @@ under the License.
 		<hiverunner.version>4.0.0</hiverunner.version>
 		<reflections.version>0.9.8</reflections.version>
 		<derby.version>10.10.2.0</derby.version>
+		<log4j2.version>2.6.2</log4j2.version>
 	</properties>
 
 	<dependencies>
@@ -299,6 +300,10 @@ under the License.
 				</exclusion>
 				<exclusion>
 					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-1.2-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
 					<artifactId>log4j-slf4j-impl</artifactId>
 				</exclusion>
 				<exclusion>
@@ -464,6 +469,10 @@ under the License.
 					<groupId>org.apache.hadoop</groupId>
 				</exclusion>
 				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-slf4j-impl</artifactId>
+				</exclusion>
+				<exclusion>
 					<artifactId>hadoop-auth</artifactId>
 					<groupId>org.apache.hadoop</groupId>
 				</exclusion>
@@ -617,6 +626,14 @@ under the License.
 					<artifactId>guava</artifactId>
 				</exclusion>
 				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-1.2-api</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.apache.logging.log4j</groupId>
+					<artifactId>log4j-slf4j-impl</artifactId>
+				</exclusion>
+				<exclusion>
 					<artifactId>hadoop-common</artifactId>
 					<groupId>org.apache.hadoop</groupId>
 				</exclusion>
@@ -680,6 +697,31 @@ under the License.
 		</dependency>
 
     </dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-api</artifactId>
+				<version>${log4j2.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-core</artifactId>
+				<version>${log4j2.version}</version>
+				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-web</artifactId>
+				<version>${log4j2.version}</version>
+				<scope>test</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<plugins>
@@ -801,6 +843,7 @@ under the License.
 			<properties>
 				<hive.version>3.1.1</hive.version>
 				<derby.version>10.14.1.0</derby.version>
+				<log4j2.version>2.12.1</log4j2.version>
 			</properties>
 
 		</profile>
