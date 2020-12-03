@@ -86,7 +86,20 @@ public class JarRunHandler extends
 			@Nonnull final HandlerRequest<JarRunRequestBody, JarRunMessageParameters> request,
 			@Nonnull final DispatcherGateway gateway) throws RestHandlerException {
 
-		final Configuration effectiveConfiguration = new Configuration(configuration);
+		final Map<String, String> jobConfiguration = fromRequestBodyOrQueryParameter(
+			request.getRequestBody().getConfiguration(),
+			() -> null, // No support via query parameter
+			null,
+			log);
+
+		Configuration  effectiveConfiguration;
+		if (jobConfiguration != null) {
+			effectiveConfiguration = new Configuration();
+			jobConfiguration.forEach(effectiveConfiguration::setString);
+		} else {
+			effectiveConfiguration = new Configuration(configuration);
+		}
+
 		effectiveConfiguration.set(DeploymentOptions.ATTACHED, false);
 		effectiveConfiguration.set(DeploymentOptions.TARGET, EmbeddedExecutor.NAME);
 

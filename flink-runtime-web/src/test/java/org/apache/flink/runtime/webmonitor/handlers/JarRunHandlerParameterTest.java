@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -171,13 +172,14 @@ public class JarRunHandlerParameterTest extends JarHandlerParameterTest<JarRunRe
 			PARALLELISM,
 			null,
 			ALLOW_NON_RESTORED_STATE_QUERY,
-			RESTORE_PATH
+			RESTORE_PATH,
+			new HashMap<>()
 		);
 	}
 
 	@Override
 	JarRunRequestBody getJarRequestBodyWithJobId(JobID jobId) {
-		return new JarRunRequestBody(null, null, null, null, jobId, null, null);
+		return new JarRunRequestBody(null, null, null, null, jobId, null, null, null);
 	}
 
 	@Test

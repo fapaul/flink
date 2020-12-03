@@ -22,6 +22,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.runtime.rest.messages.RestRequestMarshallingTestBase;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -44,7 +45,8 @@ public class JarRunRequestBodyTest extends RestRequestMarshallingTestBase<JarRun
 			4,
 			new JobID(),
 			true,
-			"foo/bar"
+			"foo/bar",
+			new HashMap<>()
 		);
 	}
 

@@ -29,6 +29,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonPro
 import javax.annotation.Nullable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@link RequestBody} for running a jar.
@@ -37,6 +38,7 @@ import java.util.List;
 public class JarRunRequestBody extends JarRequestBody {
 	private static final String FIELD_NAME_ALLOW_NON_RESTORED_STATE = "allowNonRestoredState";
 	private static final String FIELD_NAME_SAVEPOINT_PATH = "savepointPath";
+	private static final String FIELD_NAME_CONFIGURATION = "configuration";
 
 	@JsonProperty(FIELD_NAME_ALLOW_NON_RESTORED_STATE)
 	@Nullable
@@ -46,8 +48,12 @@ public class JarRunRequestBody extends JarRequestBody {
 	@Nullable
 	private String savepointPath;
 
+	@JsonProperty(FIELD_NAME_CONFIGURATION)
+	@Nullable
+	private Map<String, String> configuration;
+
 	public JarRunRequestBody() {
-		this(null, null, null, null, null, null, null);
+		this(null, null, null, null, null, null, null, null);
 	}
 
 	@JsonCreator
@@ -58,10 +64,12 @@ public class JarRunRequestBody extends JarRequestBody {
 			@Nullable @JsonProperty(FIELD_NAME_PARALLELISM) Integer parallelism,
 			@Nullable @JsonProperty(FIELD_NAME_JOB_ID) JobID jobId,
 			@Nullable @JsonProperty(FIELD_NAME_ALLOW_NON_RESTORED_STATE) Boolean allowNonRestoredState,
-			@Nullable @JsonProperty(FIELD_NAME_SAVEPOINT_PATH) String savepointPath) {
-		super(entryClassName, programArguments, programArgumentsList, parallelism, jobId);
+			@Nullable @JsonProperty(FIELD_NAME_SAVEPOINT_PATH) String savepointPath,
+			@Nullable @JsonProperty(FIELD_NAME_CONFIGURATION) Map<String, String> configuration) {
+			super(entryClassName, programArguments, programArgumentsList, parallelism, jobId);
 		this.allowNonRestoredState = allowNonRestoredState;
 		this.savepointPath = savepointPath;
+		this.configuration = configuration;
 	}
 
 	@Nullable
@@ -74,5 +82,11 @@ public class JarRunRequestBody extends JarRequestBody {
 	@JsonIgnore
 	public String getSavepointPath() {
 		return savepointPath;
+	}
+
+	@Nullable
+	@JsonIgnore
+	public Map<String, String> getConfiguration() {
+		return configuration;
 	}
 }
