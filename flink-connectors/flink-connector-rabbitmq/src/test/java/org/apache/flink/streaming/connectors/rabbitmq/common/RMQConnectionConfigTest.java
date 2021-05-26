@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -116,5 +117,51 @@ public class RMQConnectionConfigTest {
                         .build();
         Optional<Integer> prefetch = connectionConfig.getPrefetchCount();
         assertFalse(prefetch.isPresent());
+    }
+
+    @Test
+    public void shouldSetOptionalDeliveryTimeout() {
+        RMQConnectionConfig.Builder builder =
+                new RMQConnectionConfig.Builder()
+                        .setHost("localhost")
+                        .setPort(5000)
+                        .setUserName("guest")
+                        .setPassword("guest")
+                        .setVirtualHost("/");
+        RMQConnectionConfig connectionConfig = builder.setDeliveryTimeout(30000).build();
+        Optional<Integer> timeout = connectionConfig.getDeliveryTimeout();
+        assertTrue(timeout.isPresent());
+        assertEquals(30000, (int) timeout.get());
+
+        connectionConfig = builder.setDeliveryTimeout(30, TimeUnit.SECONDS).build();
+        timeout = connectionConfig.getDeliveryTimeout();
+        assertTrue(timeout.isPresent());
+        assertEquals(30000, (int) timeout.get());
+    }
+
+    @Test
+    public void shouldReturnEmptyOptionalDeliveryTimeout() {
+        RMQConnectionConfig connectionConfig =
+                new RMQConnectionConfig.Builder()
+                        .setHost("localhost")
+                        .setPort(5000)
+                        .setUserName("guest")
+                        .setPassword("guest")
+                        .setVirtualHost("/")
+                        .build();
+        Optional<Integer> timeout = connectionConfig.getDeliveryTimeout();
+        assertFalse(timeout.isPresent());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowIllegalArgumentExceptionIfDeliveryTimeoutIsNegative() {
+        new RMQConnectionConfig.Builder()
+                .setHost("localhost")
+                .setPort(1000)
+                .setUserName("guest")
+                .setPassword("guest")
+                .setVirtualHost("/")
+                .setDeliveryTimeout(-1)
+                .build();
     }
 }

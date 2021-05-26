@@ -46,6 +46,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.internal.stubbing.answers.CallsRealMethods;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -59,6 +60,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -419,6 +421,69 @@ public class RMQSourceTest {
         Mockito.verify(channel, Mockito.times(0)).basicQos(anyInt());
     }
 
+    @Test
+    public void testSetDeliveryTimeout() {
+        RMQConnectionConfig connectionConfig =
+                new RMQConnectionConfig.Builder()
+                        .setHost("localhost")
+                        .setPort(5000)
+                        .setUserName("guest")
+                        .setPassword("guest")
+                        .setVirtualHost("/")
+                        .setDeliveryTimeout(1000)
+                        .build();
+        RMQMockedRuntimeTestSource source = new RMQMockedRuntimeTestSource(connectionConfig);
+        assertEquals(1000, source.getDeliveryTimeout());
+    }
+
+    @Test
+    public void testDefaultDeliveryTimeout() {
+        RMQConnectionConfig connectionConfig =
+                new RMQConnectionConfig.Builder()
+                        .setHost("localhost")
+                        .setPort(5000)
+                        .setUserName("guest")
+                        .setPassword("guest")
+                        .setVirtualHost("/")
+                        .build();
+        RMQMockedRuntimeTestSource source = new RMQMockedRuntimeTestSource(connectionConfig);
+        assertEquals(30000, source.getDeliveryTimeout());
+    }
+
+    private static class CallsRealMethodsWithDelay extends CallsRealMethods {
+
+        private final long delay;
+
+        public CallsRealMethodsWithDelay(long delay) {
+            this.delay = delay;
+        }
+
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            Thread.sleep(delay);
+            return super.answer(invocation);
+        }
+    }
+
+    @Test(timeout = 10000L)
+    public void testDeliveryTimeout() throws Exception {
+        source.autoAck = false;
+        // mock delivery delay
+        Mockito.when(source.consumer.nextDelivery())
+                .then(new CallsRealMethodsWithDelay(15000L))
+                .thenThrow(new RuntimeException());
+        Mockito.when(source.consumer.nextDelivery(any(Long.class)))
+                .then(new CallsRealMethodsWithDelay(source.getDeliveryTimeout()))
+                .thenReturn(null);
+        sourceThread.start();
+        // wait a bit for the source to start
+        Thread.sleep(5);
+
+        source.cancel();
+        sourceThread.join();
+        Thread.sleep(5);
+        assertNull(exception);
+    }
+
     private static class ConstructorTestClass extends RMQSource<String> {
 
         private ConnectionFactory factory;
@@ -526,6 +591,7 @@ public class RMQSourceTest {
                         .setUserName("userTest")
                         .setPassword("passTest")
                         .setVirtualHost("/")
+                        .setDeliveryTimeout(100)
                         .build();
 
         protected RuntimeContext runtimeContext = Mockito.mock(StreamingRuntimeContext.class);
@@ -603,6 +669,7 @@ public class RMQSourceTest {
 
             try {
                 Mockito.when(consumer.nextDelivery()).thenReturn(mockedDelivery);
+                Mockito.when(consumer.nextDelivery(any(Long.class))).thenReturn(mockedDelivery);
             } catch (InterruptedException e) {
                 fail("Couldn't setup up deliveryMock");
             }

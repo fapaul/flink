@@ -76,6 +76,7 @@ public class RMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOG = LoggerFactory.getLogger(RMQSource.class);
+    private static final int DEFAULT_DELIVERY_TIMEOUT = 30000;
 
     private final RMQConnectionConfig rmqConnectionConfig;
     protected final String queueName;
@@ -322,14 +323,28 @@ public class RMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
         deliveryDeserializer.deserialize(envelope, properties, body, collector);
     }
 
+    /**
+     * Returns the next message delivery timeout used in the queueing consumer. If not specified in
+     * the provided connection config, the default value of 30000 milliseconds will be returned.
+     *
+     * @return consumer delivery timeout in milliseconds
+     */
+    protected int getDeliveryTimeout() {
+        return rmqConnectionConfig.getDeliveryTimeout().orElse(DEFAULT_DELIVERY_TIMEOUT);
+    }
+
     @Override
     public void run(SourceContext<OUT> ctx) throws Exception {
         final RMQCollectorImpl collector = new RMQCollectorImpl(ctx);
+        final int timeout = getDeliveryTimeout();
         while (running) {
-            Delivery delivery = consumer.nextDelivery();
+            Delivery delivery =
+                    timeout > 0 ? consumer.nextDelivery(timeout) : consumer.nextDelivery();
 
             synchronized (ctx.getCheckpointLock()) {
-                processMessage(delivery, collector);
+                if (delivery != null) {
+                    processMessage(delivery, collector);
+                }
                 if (collector.isEndOfStreamSignalled()) {
                     this.running = false;
                     return;

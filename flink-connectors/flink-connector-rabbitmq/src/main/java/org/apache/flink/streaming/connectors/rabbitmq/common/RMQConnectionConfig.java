@@ -29,14 +29,15 @@ import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Connection Configuration for RMQ. If {@link Builder#setUri(String)} has been set then {@link
  * RMQConnectionConfig#RMQConnectionConfig(String, Integer, Boolean, Boolean, Integer, Integer,
- * Integer, Integer, Integer)} will be used for initialize the RMQ connection or {@link
+ * Integer, Integer, Integer, Integer)} will be used for initialize the RMQ connection or {@link
  * RMQConnectionConfig#RMQConnectionConfig(String, Integer, String, String, String, Integer,
- * Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)} will be used for initialize the
- * RMQ connection
+ * Boolean, Boolean, Integer, Integer, Integer, Integer, Integer, Integer)} will be used for
+ * initialize the RMQ connection
  */
 public class RMQConnectionConfig implements Serializable {
 
@@ -61,6 +62,7 @@ public class RMQConnectionConfig implements Serializable {
     private Integer requestedHeartbeat;
 
     private Integer prefetchCount;
+    private Integer deliveryTimeout;
 
     /**
      * @param host host name
@@ -90,12 +92,16 @@ public class RMQConnectionConfig implements Serializable {
             Integer requestedChannelMax,
             Integer requestedFrameMax,
             Integer requestedHeartbeat,
-            Integer prefetchCount) {
+            Integer prefetchCount,
+            Integer deliveryTimeout) {
         Preconditions.checkNotNull(host, "host can not be null");
         Preconditions.checkNotNull(port, "port can not be null");
         Preconditions.checkNotNull(virtualHost, "virtualHost can not be null");
         Preconditions.checkNotNull(username, "username can not be null");
         Preconditions.checkNotNull(password, "password can not be null");
+        Preconditions.checkArgument(
+                deliveryTimeout == null || deliveryTimeout >= 0,
+                "deliveryTimeout can not be negative");
         this.host = host;
         this.port = port;
         this.virtualHost = virtualHost;
@@ -110,6 +116,7 @@ public class RMQConnectionConfig implements Serializable {
         this.requestedFrameMax = requestedFrameMax;
         this.requestedHeartbeat = requestedHeartbeat;
         this.prefetchCount = prefetchCount;
+        this.deliveryTimeout = deliveryTimeout;
     }
 
     /**
@@ -132,8 +139,12 @@ public class RMQConnectionConfig implements Serializable {
             Integer requestedChannelMax,
             Integer requestedFrameMax,
             Integer requestedHeartbeat,
-            Integer prefetchCount) {
+            Integer prefetchCount,
+            Integer deliveryTimeout) {
         Preconditions.checkNotNull(uri, "Uri can not be null");
+        Preconditions.checkArgument(
+                deliveryTimeout == null || deliveryTimeout >= 0,
+                "deliveryTimeout can not be negative");
         this.uri = uri;
 
         this.networkRecoveryInterval = networkRecoveryInterval;
@@ -144,6 +155,7 @@ public class RMQConnectionConfig implements Serializable {
         this.requestedFrameMax = requestedFrameMax;
         this.requestedHeartbeat = requestedHeartbeat;
         this.prefetchCount = prefetchCount;
+        this.deliveryTimeout = deliveryTimeout;
     }
 
     /** @return the host to use for connections */
@@ -266,6 +278,15 @@ public class RMQConnectionConfig implements Serializable {
     }
 
     /**
+     * Retrieve the the consumer delivery timeout.
+     *
+     * @return an Optional of the delivery timeout, if set, for the consumer
+     */
+    public Optional<Integer> getDeliveryTimeout() {
+        return Optional.ofNullable(deliveryTimeout);
+    }
+
+    /**
      * @return Connection Factory for RMQ
      * @throws URISyntaxException if Malformed URI has been passed
      * @throws NoSuchAlgorithmException if the ssl factory could not be created
@@ -342,6 +363,8 @@ public class RMQConnectionConfig implements Serializable {
 
         // basicQos options for consumers
         private Integer prefetchCount;
+
+        private Integer deliveryTimeout;
 
         private String uri;
 
@@ -507,15 +530,43 @@ public class RMQConnectionConfig implements Serializable {
         }
 
         /**
+         * Enables setting the next message delivery timeout in the queueing consumer. Only
+         * applicable to the {@link RMQSource}. Set to 0 for unlimited. If unlimited, the consumer
+         * will be blocked until an element becomes available.
+         *
+         * @param deliveryTimeout maximum wait time, in milliseconds, for the next message delivery
+         * @return the Builder
+         */
+        public Builder setDeliveryTimeout(int deliveryTimeout) {
+            this.deliveryTimeout = deliveryTimeout;
+            return this;
+        }
+
+        /**
+         * Enables setting the next message delivery timeout in the queueing consumer. Only
+         * applicable to the {@link RMQSource}. Set to 0 for unlimited, which is the default. If
+         * unlimited, the consumer will be blocked until an element becomes available.
+         *
+         * @param deliveryTimeout maximum wait time for the next message delivery
+         * @param unit deliveryTimeout unit
+         * @return the Builder
+         */
+        public Builder setDeliveryTimeout(long deliveryTimeout, TimeUnit unit) {
+            this.deliveryTimeout = Math.toIntExact(unit.toMillis(deliveryTimeout));
+            return this;
+        }
+
+        /**
          * The Builder method.
          *
          * <p>If URI is NULL we use host, port, vHost, username, password combination to initialize
          * connection. using {@link RMQConnectionConfig#RMQConnectionConfig(String, Integer, String,
-         * String, String, Integer, Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)}.
+         * String, String, Integer, Boolean, Boolean, Integer, Integer, Integer, Integer, Integer,
+         * Integer)}.
          *
          * <p>Otherwise the URI will be used to initialize the client connection {@link
          * RMQConnectionConfig#RMQConnectionConfig(String, Integer, Boolean, Boolean, Integer,
-         * Integer, Integer, Integer, Integer)}
+         * Integer, Integer, Integer, Integer, Integer)}
          *
          * @return RMQConnectionConfig
          */
@@ -530,7 +581,8 @@ public class RMQConnectionConfig implements Serializable {
                         this.requestedChannelMax,
                         this.requestedFrameMax,
                         this.requestedHeartbeat,
-                        this.prefetchCount);
+                        this.prefetchCount,
+                        this.deliveryTimeout);
             } else {
                 return new RMQConnectionConfig(
                         this.host,
@@ -545,7 +597,8 @@ public class RMQConnectionConfig implements Serializable {
                         this.requestedChannelMax,
                         this.requestedFrameMax,
                         this.requestedHeartbeat,
-                        this.prefetchCount);
+                        this.prefetchCount,
+                        this.deliveryTimeout);
             }
         }
     }
