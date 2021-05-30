@@ -120,7 +120,7 @@ public class RMQConnectionConfigTest {
     }
 
     @Test
-    public void shouldSetOptionalDeliveryTimeout() {
+    public void shouldSetDeliveryTimeout() {
         RMQConnectionConfig.Builder builder =
                 new RMQConnectionConfig.Builder()
                         .setHost("localhost")
@@ -128,19 +128,15 @@ public class RMQConnectionConfigTest {
                         .setUserName("guest")
                         .setPassword("guest")
                         .setVirtualHost("/");
-        RMQConnectionConfig connectionConfig = builder.setDeliveryTimeout(30000).build();
-        Optional<Integer> timeout = connectionConfig.getDeliveryTimeout();
-        assertTrue(timeout.isPresent());
-        assertEquals(30000, (int) timeout.get());
+        RMQConnectionConfig connectionConfig = builder.setDeliveryTimeout(10000).build();
+        assertEquals(10000, connectionConfig.getDeliveryTimeout());
 
-        connectionConfig = builder.setDeliveryTimeout(30, TimeUnit.SECONDS).build();
-        timeout = connectionConfig.getDeliveryTimeout();
-        assertTrue(timeout.isPresent());
-        assertEquals(30000, (int) timeout.get());
+        connectionConfig = builder.setDeliveryTimeout(10, TimeUnit.SECONDS).build();
+        assertEquals(10000, connectionConfig.getDeliveryTimeout());
     }
 
     @Test
-    public void shouldReturnEmptyOptionalDeliveryTimeout() {
+    public void shouldReturnDefaultDeliveryTimeout() {
         RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
                         .setHost("localhost")
@@ -149,8 +145,7 @@ public class RMQConnectionConfigTest {
                         .setPassword("guest")
                         .setVirtualHost("/")
                         .build();
-        Optional<Integer> timeout = connectionConfig.getDeliveryTimeout();
-        assertFalse(timeout.isPresent());
+        assertEquals(30000, connectionConfig.getDeliveryTimeout());
     }
 
     @Test(expected = IllegalArgumentException.class)

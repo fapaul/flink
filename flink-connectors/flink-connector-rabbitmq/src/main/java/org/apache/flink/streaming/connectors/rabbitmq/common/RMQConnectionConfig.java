@@ -45,6 +45,8 @@ public class RMQConnectionConfig implements Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RMQConnectionConfig.class);
 
+    private static final int DEFAULT_DELIVERY_TIMEOUT = 30000;
+
     private String host;
     private Integer port;
     private String virtualHost;
@@ -278,12 +280,13 @@ public class RMQConnectionConfig implements Serializable {
     }
 
     /**
-     * Retrieve the the consumer delivery timeout.
+     * Retrieve the next message delivery timeout used in the queueing consumer. If not specified
+     * explicitly, the default value of 30000 milliseconds will be returned.
      *
-     * @return an Optional of the delivery timeout, if set, for the consumer
+     * @return the next message delivery timeout, in milliseconds; zero for unlimited
      */
-    public Optional<Integer> getDeliveryTimeout() {
-        return Optional.ofNullable(deliveryTimeout);
+    public int getDeliveryTimeout() {
+        return Optional.ofNullable(deliveryTimeout).orElse(DEFAULT_DELIVERY_TIMEOUT);
     }
 
     /**
@@ -531,8 +534,8 @@ public class RMQConnectionConfig implements Serializable {
 
         /**
          * Enables setting the next message delivery timeout in the queueing consumer. Only
-         * applicable to the {@link RMQSource}. Set to 0 for unlimited. If unlimited, the consumer
-         * will be blocked until an element becomes available.
+         * applicable to the {@link RMQSource}. Set to 0 for unlimited (the consumer will be blocked
+         * until an element becomes available). Default is 30000.
          *
          * @param deliveryTimeout maximum wait time, in milliseconds, for the next message delivery
          * @return the Builder
@@ -544,8 +547,8 @@ public class RMQConnectionConfig implements Serializable {
 
         /**
          * Enables setting the next message delivery timeout in the queueing consumer. Only
-         * applicable to the {@link RMQSource}. Set to 0 for unlimited, which is the default. If
-         * unlimited, the consumer will be blocked until an element becomes available.
+         * applicable to the {@link RMQSource}. Set to 0 for unlimited (the consumer will be blocked
+         * until an element becomes available). Default is 30000.
          *
          * @param deliveryTimeout maximum wait time for the next message delivery
          * @param unit deliveryTimeout unit

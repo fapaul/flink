@@ -421,35 +421,6 @@ public class RMQSourceTest {
         Mockito.verify(channel, Mockito.times(0)).basicQos(anyInt());
     }
 
-    @Test
-    public void testSetDeliveryTimeout() {
-        RMQConnectionConfig connectionConfig =
-                new RMQConnectionConfig.Builder()
-                        .setHost("localhost")
-                        .setPort(5000)
-                        .setUserName("guest")
-                        .setPassword("guest")
-                        .setVirtualHost("/")
-                        .setDeliveryTimeout(1000)
-                        .build();
-        RMQMockedRuntimeTestSource source = new RMQMockedRuntimeTestSource(connectionConfig);
-        assertEquals(1000, source.getDeliveryTimeout());
-    }
-
-    @Test
-    public void testDefaultDeliveryTimeout() {
-        RMQConnectionConfig connectionConfig =
-                new RMQConnectionConfig.Builder()
-                        .setHost("localhost")
-                        .setPort(5000)
-                        .setUserName("guest")
-                        .setPassword("guest")
-                        .setVirtualHost("/")
-                        .build();
-        RMQMockedRuntimeTestSource source = new RMQMockedRuntimeTestSource(connectionConfig);
-        assertEquals(30000, source.getDeliveryTimeout());
-    }
-
     private static class CallsRealMethodsWithDelay extends CallsRealMethods {
 
         private final long delay;
@@ -472,7 +443,7 @@ public class RMQSourceTest {
                 .then(new CallsRealMethodsWithDelay(15000L))
                 .thenThrow(new RuntimeException());
         Mockito.when(source.consumer.nextDelivery(any(Long.class)))
-                .then(new CallsRealMethodsWithDelay(source.getDeliveryTimeout()))
+                .then(new CallsRealMethodsWithDelay(10L))
                 .thenReturn(null);
         sourceThread.start();
         // wait a bit for the source to start
