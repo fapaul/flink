@@ -541,6 +541,8 @@ public class RMQConnectionConfig implements Serializable {
          * @return the Builder
          */
         public Builder setDeliveryTimeout(int deliveryTimeout) {
+            Preconditions.checkArgument(
+                    deliveryTimeout >= 0, "deliveryTimeout can not be negative");
             this.deliveryTimeout = deliveryTimeout;
             return this;
         }
@@ -548,13 +550,15 @@ public class RMQConnectionConfig implements Serializable {
         /**
          * Enables setting the next message delivery timeout in the queueing consumer. Only
          * applicable to the {@link RMQSource}. Set to 0 for unlimited (the consumer will be blocked
-         * until an element becomes available). Default is 30000.
+         * until an element becomes available). Default is 30 seconds.
          *
          * @param deliveryTimeout maximum wait time for the next message delivery
          * @param unit deliveryTimeout unit
          * @return the Builder
          */
         public Builder setDeliveryTimeout(long deliveryTimeout, TimeUnit unit) {
+            Preconditions.checkArgument(
+                    deliveryTimeout >= 0, "deliveryTimeout can not be negative");
             this.deliveryTimeout = Math.toIntExact(unit.toMillis(deliveryTimeout));
             return this;
         }

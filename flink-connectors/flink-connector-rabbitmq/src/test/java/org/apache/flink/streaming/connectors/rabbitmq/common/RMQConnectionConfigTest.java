@@ -159,4 +159,16 @@ public class RMQConnectionConfigTest {
                 .setDeliveryTimeout(-1)
                 .build();
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowIllegalArgumentExceptionIfDeliveryTimeoutWithUnitIsNegative() {
+        new RMQConnectionConfig.Builder()
+                .setHost("localhost")
+                .setPort(1000)
+                .setUserName("guest")
+                .setPassword("guest")
+                .setVirtualHost("/")
+                .setDeliveryTimeout(-1, TimeUnit.SECONDS)
+                .build();
+    }
 }
