@@ -325,7 +325,7 @@ public class RMQSource<OUT> extends MultipleIdsMessageAcknowledgingSourceBase<OU
     @Override
     public void run(SourceContext<OUT> ctx) throws Exception {
         final RMQCollectorImpl collector = new RMQCollectorImpl(ctx);
-        final int timeout = rmqConnectionConfig.getDeliveryTimeout();
+        final long timeout = rmqConnectionConfig.getDeliveryTimeout();
         while (running) {
             Delivery delivery =
                     timeout > 0 ? consumer.nextDelivery(timeout) : consumer.nextDelivery();
