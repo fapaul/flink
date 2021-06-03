@@ -557,10 +557,7 @@ public class RMQConnectionConfig implements Serializable {
          * @return the Builder
          */
         public Builder setDeliveryTimeout(long deliveryTimeout, TimeUnit unit) {
-            Preconditions.checkArgument(
-                    deliveryTimeout >= 0, "deliveryTimeout can not be negative");
-            this.deliveryTimeout = unit.toMillis(deliveryTimeout);
-            return this;
+            return setDeliveryTimeout(unit.toMillis(deliveryTimeout));
         }
 
         /**
