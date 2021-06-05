@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -89,6 +90,8 @@ public class RMQSourceTest {
 
     private boolean generateCorrelationIds;
 
+    private volatile boolean stoppedGracefully;
+
     private volatile Exception exception;
 
     /**
@@ -116,6 +119,7 @@ public class RMQSourceTest {
 
         messageId = 0;
         generateCorrelationIds = true;
+        stoppedGracefully = false;
 
         sourceThread =
                 new Thread(
@@ -124,6 +128,7 @@ public class RMQSourceTest {
                             public void run() {
                                 try {
                                     source.run(new DummySourceContext());
+                                    stoppedGracefully = true;
                                 } catch (Exception e) {
                                     exception = e;
                                 }
@@ -421,38 +426,46 @@ public class RMQSourceTest {
         Mockito.verify(channel, Mockito.times(0)).basicQos(anyInt());
     }
 
+    @Test
+    public void testDeliveryTimeout() throws Exception {
+        source.autoAck = false;
+        // mock delivery delay
+        CallsRealMethodsWithDelay delayedDelivery = new CallsRealMethodsWithDelay(10L);
+        Mockito.when(source.consumer.nextDelivery())
+                .then(delayedDelivery)
+                .thenThrow(new InterruptedException());
+        Mockito.when(source.consumer.nextDelivery(any(Long.class)))
+                .then(delayedDelivery)
+                .thenReturn(null);
+
+        sourceThread.start();
+        // wait until message delivery starts
+        delayedDelivery.awaitStart();
+
+        source.cancel();
+        sourceThread.join();
+        assertTrue(stoppedGracefully);
+        assertNull(exception);
+    }
+
     private static class CallsRealMethodsWithDelay extends CallsRealMethods {
 
         private final long delay;
+        private final CountDownLatch latch = new CountDownLatch(1);
 
         public CallsRealMethodsWithDelay(long delay) {
             this.delay = delay;
         }
 
+        public void awaitStart() throws InterruptedException {
+            latch.await();
+        }
+
         public Object answer(InvocationOnMock invocation) throws Throwable {
+            latch.countDown();
             Thread.sleep(delay);
             return super.answer(invocation);
         }
-    }
-
-    @Test(timeout = 10000L)
-    public void testDeliveryTimeout() throws Exception {
-        source.autoAck = false;
-        // mock delivery delay
-        Mockito.when(source.consumer.nextDelivery())
-                .then(new CallsRealMethodsWithDelay(15000L))
-                .thenThrow(new RuntimeException());
-        Mockito.when(source.consumer.nextDelivery(any(Long.class)))
-                .then(new CallsRealMethodsWithDelay(10L))
-                .thenReturn(null);
-        sourceThread.start();
-        // wait a bit for the source to start
-        Thread.sleep(5);
-
-        source.cancel();
-        sourceThread.join();
-        Thread.sleep(5);
-        assertNull(exception);
     }
 
     private static class ConstructorTestClass extends RMQSource<String> {
