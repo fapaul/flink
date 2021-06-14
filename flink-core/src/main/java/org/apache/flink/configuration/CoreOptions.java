@@ -171,9 +171,9 @@ public class CoreOptions {
                                     + PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS.key()
                                     + "\".");
 
-    public static String[] getPluginParentFirstLoaderPatterns(Configuration config) {
-        String base = config.getString(PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS);
-        String append = config.getString(PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL);
+    public static String[] getPluginParentFirstLoaderPatterns(ReadableConfig config) {
+        String base = config.get(PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS);
+        String append = config.get(PLUGIN_ALWAYS_PARENT_FIRST_LOADER_PATTERNS_ADDITIONAL);
         return parseParentFirstLoaderPatterns(base, append);
     }
 

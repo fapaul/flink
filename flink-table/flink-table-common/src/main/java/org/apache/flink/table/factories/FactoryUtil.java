@@ -24,6 +24,7 @@ import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.DelegatingConfiguration;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.table.api.NoMatchingTableFactoryException;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.ValidationException;
@@ -53,8 +54,10 @@ import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /** Utility for working with {@link Factory}s. */
 @PublicEvolving
@@ -125,12 +128,36 @@ public final class FactoryUtil {
             ReadableConfig configuration,
             ClassLoader classLoader,
             boolean isTemporary) {
+        return createTableSource(
+                catalog,
+                objectIdentifier,
+                catalogTable,
+                configuration,
+                classLoader,
+                isTemporary,
+                null);
+    }
+
+    /**
+     * Creates a {@link DynamicTableSource} from a {@link CatalogTable}.
+     *
+     * <p>It considers {@link Catalog#getFactory()} if provided.
+     */
+    public static DynamicTableSource createTableSource(
+            @Nullable Catalog catalog,
+            ObjectIdentifier objectIdentifier,
+            ResolvedCatalogTable catalogTable,
+            ReadableConfig configuration,
+            ClassLoader classLoader,
+            boolean isTemporary,
+            @Nullable PluginManager pluginManager) {
         final DefaultDynamicTableContext context =
                 new DefaultDynamicTableContext(
                         objectIdentifier, catalogTable, configuration, classLoader, isTemporary);
         try {
             final DynamicTableSourceFactory factory =
-                    getDynamicTableFactory(DynamicTableSourceFactory.class, catalog, context);
+                    getDynamicTableFactory(
+                            DynamicTableSourceFactory.class, catalog, context, pluginManager);
             return factory.createDynamicTableSource(context);
         } catch (Throwable t) {
             throw new ValidationException(
@@ -164,7 +191,7 @@ public final class FactoryUtil {
                         objectIdentifier, catalogTable, configuration, classLoader, isTemporary);
         try {
             final DynamicTableSinkFactory factory =
-                    getDynamicTableFactory(DynamicTableSinkFactory.class, catalog, context);
+                    getDynamicTableFactory(DynamicTableSinkFactory.class, catalog, context, null);
             return factory.createDynamicTableSink(context);
         } catch (Throwable t) {
             throw new ValidationException(
@@ -292,7 +319,6 @@ public final class FactoryUtil {
      * #createTableSink(Catalog, ObjectIdentifier, ResolvedCatalogTable, ReadableConfig,
      * ClassLoader, boolean)} are not applicable.
      */
-    @SuppressWarnings("unchecked")
     public static <T extends Factory> T discoverFactory(
             ClassLoader classLoader, Class<T> factoryClass, String factoryIdentifier) {
         final List<Factory> factories = discoverFactories(classLoader);
@@ -302,6 +328,12 @@ public final class FactoryUtil {
                         .filter(f -> factoryClass.isAssignableFrom(f.getClass()))
                         .collect(Collectors.toList());
 
+        return filterFactoriesByIdentifier(factoryClass, factoryIdentifier, foundFactories);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Factory> T filterFactoriesByIdentifier(
+            Class<T> factoryClass, String factoryIdentifier, List<Factory> foundFactories) {
         if (foundFactories.isEmpty()) {
             throw new ValidationException(
                     String.format(
@@ -415,7 +447,10 @@ public final class FactoryUtil {
 
     @SuppressWarnings("unchecked")
     private static <T extends DynamicTableFactory> T getDynamicTableFactory(
-            Class<T> factoryClass, @Nullable Catalog catalog, DefaultDynamicTableContext context) {
+            Class<T> factoryClass,
+            @Nullable Catalog catalog,
+            DefaultDynamicTableContext context,
+            @Nullable PluginManager pluginManager) {
         // catalog factory has highest precedence
         if (catalog != null) {
             final Factory factory =
@@ -436,7 +471,17 @@ public final class FactoryUtil {
                             CONNECTOR.key()));
         }
         try {
-            return discoverFactory(context.getClassLoader(), factoryClass, connectorOption);
+            if (pluginManager != null) {
+                List<Factory> factories =
+                        StreamSupport.stream(
+                                        Spliterators.spliteratorUnknownSize(
+                                                pluginManager.load(Factory.class), -1),
+                                        false)
+                                .collect(Collectors.toList());
+                return filterFactoriesByIdentifier(factoryClass, connectorOption, factories);
+            } else {
+                return discoverFactory(context.getClassLoader(), factoryClass, connectorOption);
+            }
         } catch (ValidationException e) {
             throw enrichNoMatchingConnectorError(factoryClass, context, connectorOption);
         }

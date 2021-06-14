@@ -19,6 +19,8 @@
 package org.apache.flink.table.planner.plan.schema;
 
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.core.plugin.PluginManager;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.config.TableConfigOptions;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -38,6 +40,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
+
+import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -119,7 +123,15 @@ public final class CatalogSourceTable extends FlinkPreparingTableBase {
                 catalogTable,
                 config,
                 Thread.currentThread().getContextClassLoader(),
-                schemaTable.isTemporary());
+                schemaTable.isTemporary(),
+                createPluginManager(context.getTableConfig().getConfiguration()));
+    }
+
+    private static @Nullable PluginManager createPluginManager(ReadableConfig config) {
+        if (config.get(TableConfigOptions.ENABLE_PLUGIN_MANAGER)) {
+            return PluginUtils.createPluginManagerFromRootFolder(config);
+        }
+        return null;
     }
 
     public CatalogTable getCatalogTable() {

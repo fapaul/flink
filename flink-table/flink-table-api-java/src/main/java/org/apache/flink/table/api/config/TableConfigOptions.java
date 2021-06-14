@@ -98,4 +98,8 @@ public class TableConfigOptions {
                     .withDescription(
                             "Specifies a threshold where generated code will be split into sub-function calls. "
                                     + "Java has a maximum method length of 64 KB. This setting allows for finer granularity if necessary.");
+
+    @Documentation.TableOption(execMode = Documentation.ExecMode.BATCH_STREAMING)
+    public static final ConfigOption<Boolean> ENABLE_PLUGIN_MANAGER =
+            key("table.plugins.enabled").booleanType().defaultValue(false).withDescription("");
 }
