@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.jobmaster.factories;
 
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
@@ -54,6 +55,7 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
     private final JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory;
     private final FatalErrorHandler fatalErrorHandler;
     private final ClassLoader userCodeClassloader;
+    private final PluginManager pluginManager;
     private final ShuffleMaster<?> shuffleMaster;
     private final long initializationTimestamp;
 
@@ -69,6 +71,7 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
             JobManagerJobMetricGroupFactory jobManagerJobMetricGroupFactory,
             FatalErrorHandler fatalErrorHandler,
             ClassLoader userCodeClassloader,
+            PluginManager pluginManager,
             ShuffleMaster<?> shuffleMaster,
             long initializationTimestamp) {
         this.executor = executor;
@@ -82,6 +85,7 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
         this.jobManagerJobMetricGroupFactory = jobManagerJobMetricGroupFactory;
         this.fatalErrorHandler = fatalErrorHandler;
         this.userCodeClassloader = userCodeClassloader;
+        this.pluginManager = pluginManager;
         this.shuffleMaster = shuffleMaster;
         this.initializationTimestamp = initializationTimestamp;
     }
@@ -114,6 +118,7 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
                         onCompletionActions,
                         fatalErrorHandler,
                         userCodeClassloader,
+                        pluginManager,
                         shuffleMaster,
                         lookup ->
                                 new JobMasterPartitionTrackerImpl(

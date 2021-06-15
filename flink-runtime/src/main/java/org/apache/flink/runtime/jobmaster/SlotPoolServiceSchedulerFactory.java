@@ -22,6 +22,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
@@ -70,6 +71,7 @@ public interface SlotPoolServiceSchedulerFactory {
             SlotPoolService slotPoolService,
             ScheduledExecutorService executorService,
             ClassLoader userCodeLoader,
+            PluginManager pluginManager,
             CheckpointRecoveryFactory checkpointRecoveryFactory,
             Time rpcTimeout,
             BlobWriter blobWriter,

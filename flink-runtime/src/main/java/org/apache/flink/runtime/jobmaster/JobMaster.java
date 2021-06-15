@@ -24,6 +24,7 @@ import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.queryablestate.KvStateID;
 import org.apache.flink.runtime.accumulators.AccumulatorSnapshot;
 import org.apache.flink.runtime.blob.BlobWriter;
@@ -153,6 +154,8 @@ public class JobMaster extends PermanentlyFencedRpcEndpoint<JobMasterId>
 
     private final ClassLoader userCodeLoader;
 
+    private final PluginManager pluginManager;
+
     private final SlotPoolService slotPoolService;
 
     private final long initializationTimestamp;
@@ -216,6 +219,7 @@ public class JobMaster extends PermanentlyFencedRpcEndpoint<JobMasterId>
             OnCompletionActions jobCompletionActions,
             FatalErrorHandler fatalErrorHandler,
             ClassLoader userCodeLoader,
+            PluginManager pluginManager,
             ShuffleMaster<?> shuffleMaster,
             PartitionTrackerFactory partitionTrackerFactory,
             ExecutionDeploymentTracker executionDeploymentTracker,
@@ -277,6 +281,7 @@ public class JobMaster extends PermanentlyFencedRpcEndpoint<JobMasterId>
         this.jobCompletionActions = checkNotNull(jobCompletionActions);
         this.fatalErrorHandler = checkNotNull(fatalErrorHandler);
         this.userCodeLoader = checkNotNull(userCodeLoader);
+        this.pluginManager = checkNotNull(pluginManager);
         this.initializationTimestamp = initializationTimestamp;
         this.retrieveTaskManagerHostName =
                 jobMasterConfiguration
@@ -345,6 +350,7 @@ public class JobMaster extends PermanentlyFencedRpcEndpoint<JobMasterId>
                         slotPoolService,
                         scheduledExecutorService,
                         userCodeLoader,
+                        pluginManager,
                         highAvailabilityServices.getCheckpointRecoveryFactory(),
                         rpcTimeout,
                         blobWriter,

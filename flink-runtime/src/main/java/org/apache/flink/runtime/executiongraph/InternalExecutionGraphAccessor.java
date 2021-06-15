@@ -34,6 +34,7 @@ import org.apache.flink.util.SerializedValue;
 
 import javax.annotation.Nonnull;
 
+import java.util.Optional;
 import java.util.concurrent.Executor;
 
 /**
@@ -43,6 +44,8 @@ import java.util.concurrent.Executor;
 public interface InternalExecutionGraphAccessor {
 
     ClassLoader getUserClassLoader();
+
+    Optional<ClassLoader> getPluginClassLoader(String pluginId);
 
     JobID getJobID();
 

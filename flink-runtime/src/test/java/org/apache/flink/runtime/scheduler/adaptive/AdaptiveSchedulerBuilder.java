@@ -20,6 +20,8 @@ package org.apache.flink.runtime.scheduler.adaptive;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.core.plugin.PluginManager;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.blob.VoidBlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
@@ -185,10 +187,15 @@ public class AdaptiveSchedulerBuilder {
     }
 
     public AdaptiveScheduler build() throws Exception {
+
+        PluginManager pluginManager =
+                PluginUtils.createPluginManagerFromRootFolder(jobMasterConfiguration);
+
         final ExecutionGraphFactory executionGraphFactory =
                 new DefaultExecutionGraphFactory(
                         jobMasterConfiguration,
                         userCodeLoader,
+                        pluginManager,
                         new DefaultExecutionDeploymentTracker(),
                         futureExecutor,
                         ioExecutor,

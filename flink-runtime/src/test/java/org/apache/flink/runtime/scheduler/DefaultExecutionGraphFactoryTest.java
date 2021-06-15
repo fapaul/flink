@@ -20,6 +20,7 @@ package org.apache.flink.runtime.scheduler;
 
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.core.testutils.FlinkMatchers;
 import org.apache.flink.runtime.blob.VoidBlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointsCleaner;
@@ -120,6 +121,7 @@ public class DefaultExecutionGraphFactoryTest extends TestLogger {
                 new DefaultExecutionGraphFactory(
                         new Configuration(),
                         ClassLoader.getSystemClassLoader(),
+                        PluginUtils.createPluginManagerFromRootFolder(new Configuration()),
                         new DefaultExecutionDeploymentTracker(),
                         TestingUtils.defaultExecutor(),
                         TestingUtils.defaultExecutor(),

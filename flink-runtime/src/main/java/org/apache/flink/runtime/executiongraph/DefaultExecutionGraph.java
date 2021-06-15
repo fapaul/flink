@@ -27,6 +27,7 @@ import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.api.common.accumulators.AccumulatorHelper;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.SimpleCounter;
 import org.apache.flink.runtime.JobException;
@@ -129,6 +130,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     /** The executor which is used to execute blocking io operations. */
     private final Executor ioExecutor;
 
+    private final PluginManager pluginManager;
     /** Executor that runs tasks in the job manager's main thread. */
     @Nonnull private ComponentMainThreadExecutor jobMasterMainThreadExecutor;
 
@@ -275,6 +277,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
             Time rpcTimeout,
             int maxPriorAttemptsHistoryLength,
             ClassLoader userClassLoader,
+            PluginManager pluginManager,
             BlobWriter blobWriter,
             PartitionReleaseStrategy.Factory partitionReleaseStrategyFactory,
             ShuffleMaster<?> shuffleMaster,
@@ -301,6 +304,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
         this.ioExecutor = checkNotNull(ioExecutor);
 
         this.userClassLoader = checkNotNull(userClassLoader, "userClassLoader");
+        this.pluginManager = checkNotNull(pluginManager, "pluginManager");
 
         this.tasks = new HashMap<>(16);
         this.intermediateResults = new HashMap<>(16);
@@ -556,6 +560,11 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     @Override
     public ClassLoader getUserClassLoader() {
         return this.userClassLoader;
+    }
+
+    @Override
+    public Optional<ClassLoader> getPluginClassLoader(String pluginId) {
+        return pluginManager.getPluginClassloader(pluginId);
     }
 
     @Override

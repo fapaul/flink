@@ -25,6 +25,7 @@ import org.apache.flink.configuration.ClusterOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.SchedulerExecutionMode;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.akka.AkkaUtils;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
@@ -93,6 +94,7 @@ public final class DefaultSlotPoolServiceSchedulerFactory
             SlotPoolService slotPoolService,
             ScheduledExecutorService executorService,
             ClassLoader userCodeLoader,
+            PluginManager pluginManager,
             CheckpointRecoveryFactory checkpointRecoveryFactory,
             Time rpcTimeout,
             BlobWriter blobWriter,
@@ -114,6 +116,7 @@ public final class DefaultSlotPoolServiceSchedulerFactory
                 slotPoolService,
                 executorService,
                 userCodeLoader,
+                pluginManager,
                 checkpointRecoveryFactory,
                 rpcTimeout,
                 blobWriter,

@@ -22,6 +22,7 @@ package org.apache.flink.runtime.scheduler;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointRecoveryFactory;
 import org.apache.flink.runtime.concurrent.ComponentMainThreadExecutor;
@@ -58,6 +59,7 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
             final SlotPoolService slotPoolService,
             final ScheduledExecutorService futureExecutor,
             final ClassLoader userCodeLoader,
+            final PluginManager pluginManager,
             final CheckpointRecoveryFactory checkpointRecoveryFactory,
             final Time rpcTimeout,
             final BlobWriter blobWriter,
@@ -105,6 +107,7 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
                 new DefaultExecutionGraphFactory(
                         jobMasterConfiguration,
                         userCodeLoader,
+                        pluginManager,
                         executionDeploymentTracker,
                         futureExecutor,
                         ioExecutor,

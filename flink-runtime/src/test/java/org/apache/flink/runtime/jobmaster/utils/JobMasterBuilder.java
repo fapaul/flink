@@ -18,6 +18,8 @@
 package org.apache.flink.runtime.jobmaster.utils;
 
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.plugin.PluginManager;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.checkpoint.StandaloneCheckpointRecoveryFactory;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.heartbeat.HeartbeatServices;
@@ -177,6 +179,9 @@ public class JobMasterBuilder {
         final JobMasterConfiguration jobMasterConfiguration =
                 JobMasterConfiguration.fromConfiguration(configuration);
 
+        final PluginManager pluginManager =
+                PluginUtils.createPluginManagerFromRootFolder(configuration);
+
         return new JobMaster(
                 rpcService,
                 jobMasterId,
@@ -194,6 +199,7 @@ public class JobMasterBuilder {
                 onCompletionActions,
                 fatalErrorHandler,
                 JobMasterBuilder.class.getClassLoader(),
+                pluginManager,
                 shuffleMaster,
                 partitionTrackerFactory,
                 executionDeploymentTracker,

@@ -228,7 +228,12 @@ public class ExecutionJobVertex
             if (splitSource != null) {
                 Thread currentThread = Thread.currentThread();
                 ClassLoader oldContextClassLoader = currentThread.getContextClassLoader();
-                currentThread.setContextClassLoader(graph.getUserClassLoader());
+                ClassLoader vertexClassloader =
+                        jobVertex
+                                .getPluginId()
+                                .flatMap(graph::getPluginClassLoader)
+                                .orElse(graph.getUserClassLoader());
+                currentThread.setContextClassLoader(vertexClassloader);
                 try {
                     inputSplits =
                             splitSource.createInputSplits(this.parallelismInfo.getParallelism());

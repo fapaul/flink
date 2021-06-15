@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Default implementation of {@link PluginManager}. */
 @Internal
@@ -47,6 +49,8 @@ public class DefaultPluginManager implements PluginManager {
 
     /** List of patterns for classes that should always be resolved from the parent ClassLoader. */
     private final String[] alwaysParentFirstPatterns;
+
+    private final Map<String, ClassLoader> pluginClassloaders = new ConcurrentHashMap<>();
 
     @VisibleForTesting
     DefaultPluginManager() {
@@ -76,23 +80,35 @@ public class DefaultPluginManager implements PluginManager {
     public <P> Iterator<P> load(Class<P> service) {
         ArrayList<Iterator<P>> combinedIterators = new ArrayList<>(pluginDescriptors.size());
         for (PluginDescriptor pluginDescriptor : pluginDescriptors) {
-            PluginLoader pluginLoader =
-                    PluginLoader.create(
-                            pluginDescriptor, parentClassLoader, alwaysParentFirstPatterns);
-            combinedIterators.add(pluginLoader.load(service));
+            getPluginClassloader(pluginDescriptor.getPluginId())
+                    .ifPresent(
+                            classLoader -> {
+                                combinedIterators.add(new PluginLoader(classLoader).load(service));
+                            });
         }
         return Iterators.concat(combinedIterators.iterator());
     }
 
     @Override
     public Optional<ClassLoader> getPluginClassloader(String pluginId) {
-        return pluginDescriptors.stream()
-                .filter(plugin -> plugin.getPluginId().equals(pluginId))
-                .findFirst()
-                .map(
-                        plugin ->
-                                PluginLoader.createPluginClassLoader(
-                                        plugin, parentClassLoader, alwaysParentFirstPatterns));
+        ClassLoader cachedClassloader = pluginClassloaders.get(pluginId);
+        if (cachedClassloader != null) {
+            return Optional.of(cachedClassloader);
+        } else {
+            Optional<ClassLoader> pluginClassloader =
+                    pluginDescriptors.stream()
+                            .filter(plugin -> plugin.getPluginId().equals(pluginId))
+                            .findFirst()
+                            .map(
+                                    plugin ->
+                                            PluginLoader.createPluginClassLoader(
+                                                    plugin,
+                                                    parentClassLoader,
+                                                    alwaysParentFirstPatterns));
+            pluginClassloader.ifPresent(
+                    classloader -> pluginClassloaders.put(pluginId, classloader));
+            return pluginClassloader;
+        }
     }
 
     @Override

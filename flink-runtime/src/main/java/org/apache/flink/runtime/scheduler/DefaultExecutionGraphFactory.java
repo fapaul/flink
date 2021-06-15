@@ -20,6 +20,7 @@ package org.apache.flink.runtime.scheduler;
 
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.blob.BlobWriter;
 import org.apache.flink.runtime.checkpoint.CheckpointCoordinator;
 import org.apache.flink.runtime.checkpoint.CheckpointIDCounter;
@@ -50,6 +51,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
 
     private final Configuration configuration;
     private final ClassLoader userCodeClassLoader;
+    private final PluginManager pluginManager;
     private final ExecutionDeploymentTracker executionDeploymentTracker;
     private final ScheduledExecutorService futureExecutor;
     private final Executor ioExecutor;
@@ -62,6 +64,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
     public DefaultExecutionGraphFactory(
             Configuration configuration,
             ClassLoader userCodeClassLoader,
+            PluginManager pluginManager,
             ExecutionDeploymentTracker executionDeploymentTracker,
             ScheduledExecutorService futureExecutor,
             Executor ioExecutor,
@@ -72,6 +75,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
             JobMasterPartitionTracker jobMasterPartitionTracker) {
         this.configuration = configuration;
         this.userCodeClassLoader = userCodeClassLoader;
+        this.pluginManager = pluginManager;
         this.executionDeploymentTracker = executionDeploymentTracker;
         this.futureExecutor = futureExecutor;
         this.ioExecutor = ioExecutor;
@@ -110,6 +114,7 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
                         futureExecutor,
                         ioExecutor,
                         userCodeClassLoader,
+                        pluginManager,
                         completedCheckpointStore,
                         checkpointsCleaner,
                         checkpointIdCounter,

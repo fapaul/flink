@@ -839,6 +839,11 @@ public class ExecutingTest extends TestLogger {
         }
 
         @Override
+        public Optional<ClassLoader> getPluginClassLoader(String pluginId) {
+            return Optional.empty();
+        }
+
+        @Override
         public JobID getJobID() {
             return null;
         }

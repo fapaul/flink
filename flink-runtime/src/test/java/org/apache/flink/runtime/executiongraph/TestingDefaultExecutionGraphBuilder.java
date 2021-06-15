@@ -20,6 +20,8 @@ package org.apache.flink.runtime.executiongraph;
 
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.plugin.PluginManager;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.JobException;
@@ -169,12 +171,15 @@ public class TestingDefaultExecutionGraphBuilder {
     }
 
     public DefaultExecutionGraph build() throws JobException, JobExecutionException {
+        final PluginManager pluginManager =
+                PluginUtils.createPluginManagerFromRootFolder(jobMasterConfig);
         return DefaultExecutionGraphBuilder.buildGraph(
                 jobGraph,
                 jobMasterConfig,
                 futureExecutor,
                 ioExecutor,
                 userClassLoader,
+                pluginManager,
                 completedCheckpointStore,
                 new CheckpointsCleaner(),
                 checkpointIdCounter,
