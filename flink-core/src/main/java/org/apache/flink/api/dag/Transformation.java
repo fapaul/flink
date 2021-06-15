@@ -171,6 +171,8 @@ public abstract class Transformation<T> {
 
     @Nullable private String coLocationGroupKey;
 
+    @Nullable private String pluginId;
+
     /**
      * Creates a new {@code Transformation} with the given name, output type and parallelism.
      *
@@ -572,5 +574,14 @@ public abstract class Transformation<T> {
         result = 31 * result + parallelism;
         result = 31 * result + (int) (bufferTimeout ^ (bufferTimeout >>> 32));
         return result;
+    }
+
+    @Nullable
+    public String getPluginId() {
+        return pluginId;
+    }
+
+    public void setPluginId(@Nullable String pluginId) {
+        this.pluginId = pluginId;
     }
 }

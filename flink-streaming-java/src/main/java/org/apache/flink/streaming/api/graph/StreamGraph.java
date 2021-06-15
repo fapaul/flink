@@ -760,6 +760,10 @@ public class StreamGraph implements Pipeline {
         getStreamNode(vertexID).setOutputFormat(outputFormat);
     }
 
+    public void setPluginId(Integer vertexID, String pluginId) {
+        getStreamNode(vertexID).setPluginId(pluginId);
+    }
+
     public void setTransformationUID(Integer nodeId, String transformationId) {
         StreamNode node = streamNodes.get(nodeId);
         if (node != null) {

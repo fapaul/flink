@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Optional;
 
 /** Default implementation of {@link PluginManager}. */
 @Internal
@@ -81,6 +82,17 @@ public class DefaultPluginManager implements PluginManager {
             combinedIterators.add(pluginLoader.load(service));
         }
         return Iterators.concat(combinedIterators.iterator());
+    }
+
+    @Override
+    public Optional<ClassLoader> getPluginClassloader(String pluginId) {
+        return pluginDescriptors.stream()
+                .filter(plugin -> plugin.getPluginId().equals(pluginId))
+                .findFirst()
+                .map(
+                        plugin ->
+                                PluginLoader.createPluginClassLoader(
+                                        plugin, parentClassLoader, alwaysParentFirstPatterns));
     }
 
     @Override

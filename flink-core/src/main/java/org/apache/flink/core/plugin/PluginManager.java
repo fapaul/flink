@@ -19,6 +19,7 @@
 package org.apache.flink.core.plugin;
 
 import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * PluginManager is responsible for managing cluster plugins which are loaded using separate class
@@ -36,4 +37,6 @@ public interface PluginManager {
      *     known plugins.
      */
     <P> Iterator<P> load(Class<P> service);
+
+    Optional<ClassLoader> getPluginClassloader(String pluginId);
 }

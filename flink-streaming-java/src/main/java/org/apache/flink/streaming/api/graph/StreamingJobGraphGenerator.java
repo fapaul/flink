@@ -608,6 +608,7 @@ public class StreamingJobGraphGenerator {
                 chainedMinResources.get(streamNodeId), chainedPreferredResources.get(streamNodeId));
 
         jobVertex.setInvokableClass(streamNode.getJobVertexClass());
+        jobVertex.setPluginId(streamNode.getPluginId());
 
         int parallelism = streamNode.getParallelism();
 
@@ -1144,8 +1145,10 @@ public class StreamingJobGraphGenerator {
                 groupOperatorIds.stream()
                         .flatMap(
                                 (oid) ->
-                                        operatorScopeManagedMemoryUseCaseWeightsRetriever.apply(oid)
-                                                .entrySet().stream())
+                                        operatorScopeManagedMemoryUseCaseWeightsRetriever
+                                                .apply(oid)
+                                                .entrySet()
+                                                .stream())
                         .collect(
                                 Collectors.groupingBy(
                                         Map.Entry::getKey,

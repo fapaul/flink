@@ -22,6 +22,7 @@ import org.apache.commons.collections.IteratorUtils;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 /** {@link PluginManager} for testing purpose. */
 public class TestingPluginManager implements PluginManager {
@@ -36,5 +37,10 @@ public class TestingPluginManager implements PluginManager {
     @Override
     public <P> Iterator<P> load(Class<P> service) {
         return (Iterator<P>) plugins.getOrDefault(service, IteratorUtils.emptyIterator());
+    }
+
+    @Override
+    public Optional<ClassLoader> getPluginClassloader(String pluginId) {
+        return Optional.empty();
     }
 }

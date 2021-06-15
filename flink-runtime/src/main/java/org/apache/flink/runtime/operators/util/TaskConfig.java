@@ -289,19 +289,13 @@ public class TaskConfig implements Serializable {
             InstantiationUtil.writeObjectToConfig(wrapper, this.config, STUB_OBJECT);
         } catch (IOException e) {
             throw new CorruptConfigurationException(
-                    "Could not write the user code wrapper "
-                            + wrapper.getClass()
-                            + " : "
-                            + e.toString(),
-                    e);
+                    "Could not write the user code wrapper " + wrapper.getClass() + " : " + e, e);
         }
     }
 
-    @SuppressWarnings("unchecked")
     public <T> UserCodeWrapper<T> getStubWrapper(ClassLoader cl) {
         try {
-            return (UserCodeWrapper<T>)
-                    InstantiationUtil.readObjectFromConfig(this.config, STUB_OBJECT, cl);
+            return InstantiationUtil.readObjectFromConfig(this.config, STUB_OBJECT, cl);
         } catch (ClassNotFoundException | IOException e) {
             throw new CorruptConfigurationException(
                     "Could not read the user code wrapper: " + e.getMessage(), e);

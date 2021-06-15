@@ -24,6 +24,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.configuration.WebOptions;
+import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.JobException;
 import org.apache.flink.runtime.blob.BlobWriter;
@@ -171,7 +172,14 @@ public class DefaultExecutionGraphBuilder {
             }
 
             try {
-                vertex.initializeOnMaster(classLoader);
+                ClassLoader vertexClassloader =
+                        vertex.getPluginId()
+                                .flatMap(
+                                        PluginUtils.createPluginManagerFromRootFolder(
+                                                        jobManagerConfig)
+                                                ::getPluginClassloader)
+                                .orElse(classLoader);
+                vertex.initializeOnMaster(vertexClassloader);
             } catch (Throwable t) {
                 throw new JobExecutionException(
                         jobId,

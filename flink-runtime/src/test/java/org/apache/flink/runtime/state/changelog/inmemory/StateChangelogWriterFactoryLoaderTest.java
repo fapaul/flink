@@ -24,6 +24,7 @@ import org.apache.flink.runtime.state.changelog.StateChangelogWriterFactoryLoade
 import org.junit.Test;
 
 import java.util.Iterator;
+import java.util.Optional;
 
 import static java.util.Collections.emptyIterator;
 import static java.util.Collections.singletonList;
@@ -60,6 +61,11 @@ public class StateChangelogWriterFactoryLoaderTest {
                 checkArgument(service.equals(StateChangelogWriterFactory.class));
                 //noinspection unchecked
                 return (Iterator<P>) iterator;
+            }
+
+            @Override
+            public Optional<ClassLoader> getPluginClassloader(String pluginId) {
+                return Optional.empty();
             }
         };
     }

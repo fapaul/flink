@@ -84,6 +84,7 @@ public class StreamNode {
 
     private String transformationUID;
     private String userHash;
+    private @Nullable String pluginId;
 
     private final Map<Integer, StreamConfig.InputRequirement> inputRequirements = new HashMap<>();
 
@@ -342,6 +343,15 @@ public class StreamNode {
 
     public void setUserHash(String userHash) {
         this.userHash = userHash;
+    }
+
+    public void setPluginId(String pluginId) {
+        this.pluginId = pluginId;
+    }
+
+    @Nullable
+    public String getPluginId() {
+        return pluginId;
     }
 
     public void addInputRequirement(

@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -134,6 +135,8 @@ public class JobVertex implements java.io.Serializable {
      * JSON plan.
      */
     private String resultOptimizerProperties;
+
+    @Nullable private String pluginId;
 
     // --------------------------------------------------------------------------------------------
 
@@ -581,5 +584,13 @@ public class JobVertex implements java.io.Serializable {
     @Override
     public String toString() {
         return this.name + " (" + this.invokableClassName + ')';
+    }
+
+    public Optional<String> getPluginId() {
+        return Optional.ofNullable(pluginId);
+    }
+
+    public void setPluginId(@Nullable String pluginId) {
+        this.pluginId = pluginId;
     }
 }
