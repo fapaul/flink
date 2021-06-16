@@ -23,6 +23,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.TaskInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.core.plugin.PluginManager;
 import org.apache.flink.runtime.accumulators.AccumulatorRegistry;
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager;
 import org.apache.flink.runtime.checkpoint.CheckpointException;
@@ -370,6 +371,11 @@ public class MockEnvironment implements Environment, AutoCloseable {
         checkArgument(expectedExternalFailureCause.get().isInstance(checkNotNull(cause)));
         checkState(!actualExternalFailureCause.isPresent());
         actualExternalFailureCause = Optional.of(cause);
+    }
+
+    @Override
+    public PluginManager getPluginManager() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
