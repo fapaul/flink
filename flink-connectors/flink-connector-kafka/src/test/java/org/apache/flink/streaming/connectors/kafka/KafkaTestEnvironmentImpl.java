@@ -30,7 +30,6 @@ import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartiti
 import org.apache.flink.streaming.util.serialization.KeyedSerializationSchema;
 import org.apache.flink.util.NetUtils;
 
-import kafka.metrics.KafkaMetricsReporter;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import org.apache.commons.collections.list.UnmodifiableList;
@@ -67,8 +66,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import scala.collection.mutable.ArraySeq;
 
 import static org.apache.flink.util.NetUtils.hostAndPortToUrlString;
 import static org.junit.Assert.assertTrue;
@@ -476,12 +473,7 @@ public class KafkaTestEnvironmentImpl extends KafkaTestEnvironment {
 
             try {
                 scala.Option<String> stringNone = scala.Option.apply(null);
-                KafkaServer server =
-                        new KafkaServer(
-                                kafkaConfig,
-                                Time.SYSTEM,
-                                stringNone,
-                                new ArraySeq<KafkaMetricsReporter>(0));
+                KafkaServer server = new KafkaServer(kafkaConfig, Time.SYSTEM, stringNone, false);
                 server.startup();
                 return server;
             } catch (KafkaException e) {

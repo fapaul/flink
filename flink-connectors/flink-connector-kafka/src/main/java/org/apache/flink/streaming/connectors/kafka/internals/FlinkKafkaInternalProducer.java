@@ -24,6 +24,7 @@ import org.apache.flink.util.Preconditions;
 
 import org.apache.flink.shaded.guava18.com.google.common.base.Joiner;
 
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -121,6 +122,14 @@ public class FlinkKafkaInternalProducer<K, V> implements Producer<K, V> {
             ensureNotClosed();
             kafkaProducer.sendOffsetsToTransaction(offsets, consumerGroupId);
         }
+    }
+
+    @Override
+    public void sendOffsetsToTransaction(
+            Map<TopicPartition, OffsetAndMetadata> map, ConsumerGroupMetadata consumerGroupMetadata)
+            throws ProducerFencedException {
+        throw new UnsupportedOperationException(
+                "Sending offsets without a consumer group identifier is not supported");
     }
 
     @Override

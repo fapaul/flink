@@ -36,7 +36,7 @@ under the License.
 	<packaging>jar</packaging>
 
 	<properties>
-		<kafka.version>2.4.1</kafka.version>
+		<kafka.version>2.8.0</kafka.version>
 	</properties>
 
 	<dependencies>
@@ -123,6 +123,32 @@ under the License.
 			<version>${project.version}</version>
 			<type>test-jar</type>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.zookeeper</groupId>
+			<artifactId>zookeeper</artifactId>
+			<version>3.5.9</version>
+			<exclusions>
+				<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<!-- Netty is only needed for ZK servers, not clients -->
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty</artifactId>
+				</exclusion>
+				<!-- jline is optional for ZK console shell -->
+				<exclusion>
+					<groupId>jline</groupId>
+					<artifactId>jline</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
