@@ -22,6 +22,7 @@ package org.apache.flink.api.connector.sink;
 import org.apache.flink.annotation.Experimental;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.util.UserCodeClassLoader;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -85,6 +86,14 @@ public interface Sink<InputT, CommT, WriterStateT, GlobalCommT> extends Serializ
     interface InitContext {
 
         /**
+         * Gets the {@link UserCodeClassLoader} to load classes that are not in system's classpath,
+         * but are part of the jar file of a user job.
+         *
+         * @see UserCodeClassLoader
+         */
+        UserCodeClassLoader getUserCodeClassLoader();
+
+        /**
          * Returns a {@link ProcessingTimeService} that can be used to get the current time and
          * register timers.
          */
@@ -92,6 +101,9 @@ public interface Sink<InputT, CommT, WriterStateT, GlobalCommT> extends Serializ
 
         /** @return The id of task where the writer is. */
         int getSubtaskId();
+
+        /** @return number of parallel Sink tasks. */
+        int getNumberOfParallelSubtasks();
 
         /** @return The metric group this writer belongs to. */
         MetricGroup metricGroup();
