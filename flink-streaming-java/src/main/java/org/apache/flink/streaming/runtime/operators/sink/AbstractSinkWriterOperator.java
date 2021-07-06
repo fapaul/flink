@@ -19,6 +19,8 @@
 package org.apache.flink.streaming.runtime.operators.sink;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.common.functions.RuntimeContext;
+import org.apache.flink.api.common.serialization.RuntimeContextUserCodeClassLoaderAdapter;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.metrics.MetricGroup;
@@ -29,6 +31,7 @@ import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
+import org.apache.flink.util.UserCodeClassLoader;
 
 import java.util.List;
 
@@ -90,6 +93,8 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     public void processWatermark(Watermark mark) throws Exception {
         super.processWatermark(mark);
         this.currentWatermark = mark.getTimestamp();
+        sinkWriter.writeWatermark(
+                new org.apache.flink.api.common.eventtime.Watermark(mark.getTimestamp()));
     }
 
     @Override
@@ -104,10 +109,12 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     }
 
     protected Sink.InitContext createInitContext() {
+        final RuntimeContext runtimeContext = getRuntimeContext();
         return new InitContextImpl(
-                getRuntimeContext().getIndexOfThisSubtask(),
+                runtimeContext,
                 processingTimeService,
-                getMetricGroup());
+                getMetricGroup(),
+                new RuntimeContextUserCodeClassLoaderAdapter(runtimeContext));
     }
 
     /**
@@ -149,13 +156,25 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
 
         private final MetricGroup metricGroup;
 
+        private final UserCodeClassLoader userCodeClassLoader;
+
+        private final RuntimeContext runtimeContext;
+
         public InitContextImpl(
-                int subtaskIdx,
+                RuntimeContext runtimeContext,
                 ProcessingTimeService processingTimeService,
-                MetricGroup metricGroup) {
-            this.subtaskIdx = subtaskIdx;
+                MetricGroup metricGroup,
+                UserCodeClassLoader userCodeClassLoader) {
+            this.runtimeContext = runtimeContext;
+            this.subtaskIdx = runtimeContext.getIndexOfThisSubtask();
             this.processingTimeService = checkNotNull(processingTimeService);
             this.metricGroup = checkNotNull(metricGroup);
+            this.userCodeClassLoader = checkNotNull(userCodeClassLoader);
+        }
+
+        @Override
+        public UserCodeClassLoader getUserCodeClassLoader() {
+            return null;
         }
 
         @Override
@@ -166,6 +185,11 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
         @Override
         public int getSubtaskId() {
             return subtaskIdx;
+        }
+
+        @Override
+        public int getNumberOfParallelSubtasks() {
+            return runtimeContext.getNumberOfParallelSubtasks();
         }
 
         @Override

@@ -97,24 +97,4 @@ public final class RuntimeContextInitializationContextAdapters {
             return new RuntimeContextUserCodeClassLoaderAdapter(runtimeContext);
         }
     }
-
-    private static final class RuntimeContextUserCodeClassLoaderAdapter
-            implements UserCodeClassLoader {
-        private final RuntimeContext runtimeContext;
-
-        private RuntimeContextUserCodeClassLoaderAdapter(RuntimeContext runtimeContext) {
-            this.runtimeContext = runtimeContext;
-        }
-
-        @Override
-        public ClassLoader asClassLoader() {
-            return runtimeContext.getUserCodeClassLoader();
-        }
-
-        @Override
-        public void registerReleaseHookIfAbsent(String releaseHookName, Runnable releaseHook) {
-            runtimeContext.registerUserCodeClassLoaderReleaseHookIfAbsent(
-                    releaseHookName, releaseHook);
-        }
-    }
 }
