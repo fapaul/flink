@@ -59,21 +59,37 @@ import static org.apache.flink.util.Preconditions.checkState;
 class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void> {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaSink.class);
-    private static final Duration DEFAULT_KAFKA_TRANSACTION_TIMEOUT = Duration.ofHours(1);
 
+    /**
+     * This coefficient determines what is the safe scale down factor.
+     *
+     * <p>If the Flink application previously failed before first checkpoint completed or we are
+     * starting new batch of {@link KafkaWriter} from scratch without clean shutdown of the previous
+     * one, {@link KafkaWriter} doesn't know what was the set of previously used Kafka's
+     * transactionalId's. In that case, it will try to play safe and abort all of the possible
+     * transactionalIds from the range of: {@code [0, getNumberOfParallelSubtasks() *
+     * kafkaProducersPoolSize * SAFE_SCALE_DOWN_FACTOR) }
+     *
+     * <p>The range of available to use transactional ids is: {@code [0,
+     * getNumberOfParallelSubtasks() * kafkaProducersPoolSize) }
+     *
+     * <p>This means that if we decrease {@code getNumberOfParallelSubtasks()} by a factor larger
+     * than {@code SAFE_SCALE_DOWN_FACTOR} we can have a left some lingering transaction.
+     */
     private final DeliveryGuarantee deliveryGuarantee;
+
     private final KafkaRecordSerializationSchema<IN> recordSerializer;
     private final Properties kafkaProducerConfig;
-    private final int kafkaProducerPoolSize;
+    private final String transactionalIdPrefix;
 
     private KafkaSink(
             DeliveryGuarantee deliveryGuarantee,
             Properties kafkaProducerConfig,
-            int kafkaProducerPoolSize,
+            String transactionalIdPrefix,
             KafkaRecordSerializationSchema<IN> recordSerializer) {
         this.deliveryGuarantee = deliveryGuarantee;
-        this.kafkaProducerPoolSize = kafkaProducerPoolSize;
         this.kafkaProducerConfig = kafkaProducerConfig;
+        this.transactionalIdPrefix = transactionalIdPrefix;
         this.recordSerializer = recordSerializer;
     }
 
@@ -83,7 +99,7 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
         return new KafkaWriter<>(
                 deliveryGuarantee,
                 kafkaProducerConfig,
-                kafkaProducerPoolSize,
+                transactionalIdPrefix,
                 context,
                 recordSerializer,
                 new InitContextInitializationContextAdapter(
@@ -93,7 +109,7 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
 
     @Override
     public Optional<Committer<KafkaCommittable>> createCommitter() throws IOException {
-        return Optional.empty();
+        return Optional.of(new KafkaCommitter());
     }
 
     @Override
@@ -104,7 +120,7 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
 
     @Override
     public Optional<SimpleVersionedSerializer<KafkaCommittable>> getCommittableSerializer() {
-        return Optional.empty();
+        return Optional.of(new KafkaCommittableSerializer(kafkaProducerConfig));
     }
 
     @Override
@@ -114,7 +130,7 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
 
     @Override
     public Optional<SimpleVersionedSerializer<KafkaWriterState>> getWriterStateSerializer() {
-        return Optional.of(new KafkaWriterStateSerializer(kafkaProducerConfig));
+        return Optional.of(new KafkaWriterStateSerializer());
     }
 
     /**
@@ -124,8 +140,10 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
      */
     public static class Builder<IN> {
 
+        private static final Duration DEFAULT_KAFKA_TRANSACTION_TIMEOUT = Duration.ofHours(1);
+
         private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.NONE;
-        private int kafkaProducersPoolSize = 5;
+        private String transactionalIdPrefix = "kafka-sink";
 
         private Properties kafkaProducerConfig;
         private KafkaRecordSerializationSchema<IN> recordSerializer;
@@ -174,27 +192,27 @@ class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterState, Void
 
         public Builder<IN> setRecordSerializer(
                 KafkaRecordSerializationSchema<IN> recordSerializer) {
-            this.recordSerializer = recordSerializer;
+            this.recordSerializer = requireNonNull(recordSerializer, "recordSerializer");
             ClosureCleaner.clean(
                     this.recordSerializer, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
             return this;
         }
 
-        public Builder<IN> setKafkaProducersPoolSize(int kafkaProducersPoolSize) {
-            this.kafkaProducersPoolSize = kafkaProducersPoolSize;
+        public Builder<IN> setTransactionalIdPrefix(String transactionalIdPrefix) {
+            this.transactionalIdPrefix =
+                    requireNonNull(transactionalIdPrefix, "transactionalIdPrefix");
             return this;
         }
 
         public KafkaSink<IN> build() {
             requireNonNull(kafkaProducerConfig, "kafkaProducerConfig");
-            checkState(kafkaProducersPoolSize > 0, "kafkaProducersPoolSize must be non empty");
             checkState(
                     kafkaProducerConfig.containsKey(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG),
                     "kafkaProducerConfig must contain " + ProducerConfig.BOOTSTRAP_SERVERS_CONFIG);
             return new KafkaSink<>(
                     deliveryGuarantee,
                     kafkaProducerConfig,
-                    kafkaProducersPoolSize,
+                    transactionalIdPrefix,
                     requireNonNull(recordSerializer, "recordSerializer"));
         }
     }

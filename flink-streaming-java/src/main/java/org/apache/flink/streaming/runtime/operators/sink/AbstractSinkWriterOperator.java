@@ -86,6 +86,7 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     @Override
     public void prepareSnapshotPreBarrier(long checkpointId) throws Exception {
         super.prepareSnapshotPreBarrier(checkpointId);
+        LOG.info("Prepare snapshot for {}", checkpointId);
         sendCommittables(sinkWriter.prepareCommit(false));
     }
 

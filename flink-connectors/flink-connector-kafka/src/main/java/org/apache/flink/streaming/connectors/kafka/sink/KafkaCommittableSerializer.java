@@ -19,14 +19,22 @@ package org.apache.flink.streaming.connectors.kafka.sink;
 
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Properties;
 
-/** A serializer used to serialize {@link KafkaWriterState}. */
-class KafkaWriterStateSerializer implements SimpleVersionedSerializer<KafkaWriterState> {
+class KafkaCommittableSerializer implements SimpleVersionedSerializer<KafkaCommittable> {
+
+    private final Properties kafkaProducerConfig;
+
+    KafkaCommittableSerializer(Properties kafkaProducerConfig) {
+        this.kafkaProducerConfig = kafkaProducerConfig;
+    }
 
     @Override
     public int getVersion() {
@@ -34,25 +42,30 @@ class KafkaWriterStateSerializer implements SimpleVersionedSerializer<KafkaWrite
     }
 
     @Override
-    public byte[] serialize(KafkaWriterState state) throws IOException {
+    public byte[] serialize(KafkaCommittable state) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 final DataOutputStream out = new DataOutputStream(baos)) {
-            out.writeInt(state.getSubtaskId());
-            out.writeLong(state.getTransactionalIdOffset());
-            out.writeUTF(state.getTransactionalIdPrefix());
+            out.writeShort(state.getEpoch());
+            out.writeLong(state.getProducerId());
+            out.writeUTF(
+                    state.getKafkaProducerConfig()
+                            .getProperty(ProducerConfig.TRANSACTIONAL_ID_CONFIG));
             out.flush();
             return baos.toByteArray();
         }
     }
 
     @Override
-    public KafkaWriterState deserialize(int version, byte[] serialized) throws IOException {
+    public KafkaCommittable deserialize(int version, byte[] serialized) throws IOException {
         try (final ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 final DataInputStream in = new DataInputStream(bais)) {
-            final int lastParallelism = in.readInt();
-            final long transactionalOffset = in.readLong();
-            final String transactionalIdPrefx = in.readUTF();
-            return new KafkaWriterState(lastParallelism, transactionalOffset, transactionalIdPrefx);
+            final short epoch = in.readShort();
+            final long producerId = in.readLong();
+            final String transactionalId = in.readUTF();
+            final Properties copiedConfig = new Properties();
+            copiedConfig.putAll(kafkaProducerConfig);
+            copiedConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, transactionalId);
+            return new KafkaCommittable(producerId, epoch, copiedConfig);
         }
     }
 }

@@ -17,24 +17,30 @@
 
 package org.apache.flink.streaming.connectors.kafka.sink;
 
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 
 /**
- * Tests for serializing and deserialzing {@link KafkaWriterState} with {@link
- * KafkaWriterStateSerializer}.
+ * Tests for serializing and deserialzing {@link KafkaCommittable} with {@link
+ * KafkaCommittableSerializer}.
  */
-public class KafkaWriterStateSerializerTest {
+public class KafkaCommittableSerializerTest {
 
-    private static final KafkaWriterStateSerializer SERIALIZER = new KafkaWriterStateSerializer();
+    private static final KafkaCommittableSerializer SERIALIZER =
+            new KafkaCommittableSerializer(new Properties());
 
     @Test
-    public void testStateSerDe() throws IOException {
-        final KafkaWriterState state = new KafkaWriterState(1, 2, "idPrefix");
-        final byte[] serialized = SERIALIZER.serialize(state);
-        assertEquals(state, SERIALIZER.deserialize(1, serialized));
+    public void testCommittableSerDe() throws IOException {
+        final Properties config = new Properties();
+        config.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "test-id");
+        final short epoch = 5;
+        final KafkaCommittable committable = new KafkaCommittable(1L, epoch, config);
+        final byte[] serialized = SERIALIZER.serialize(committable);
+        assertEquals(committable, SERIALIZER.deserialize(1, serialized));
     }
 }

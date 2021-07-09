@@ -17,41 +17,30 @@
 
 package org.apache.flink.streaming.connectors.kafka.sink;
 
-import javax.annotation.Nullable;
-
 import java.util.Objects;
-import java.util.Properties;
 
-import static java.util.Objects.requireNonNull;
-
-/**
- * This class holds the necessary information to construct a new {@link FlinkKafkaInternalProducer}
- * to continue processing of the {@link KafkaWriter} after a possible interruption i.e failure.
- */
 class KafkaWriterState {
+    private final int subtaskId;
+    private final long transactionalIdOffset;
+    private final String transactionalIdPrefix;
 
-    private final long producerId;
-    private final short epoch;
-
-    @Nullable private transient FlinkKafkaInternalProducer<byte[], byte[]> producer;
-    private final Properties kafkaProducerConfig;
-
-    public KafkaWriterState(Properties kafkaProducerConfig, long producerId, short epoch) {
-        this.kafkaProducerConfig = requireNonNull(kafkaProducerConfig, "kafkaProducerConfig");
-        this.producerId = producerId;
-        this.epoch = epoch;
+    KafkaWriterState(
+            int subtaskId, long nextFreeTransactionalIdOffset, String transactionalIdPrefix) {
+        this.subtaskId = subtaskId;
+        this.transactionalIdOffset = nextFreeTransactionalIdOffset;
+        this.transactionalIdPrefix = transactionalIdPrefix;
     }
 
-    public long getProducerId() {
-        return producerId;
+    public int getSubtaskId() {
+        return subtaskId;
     }
 
-    public short getEpoch() {
-        return epoch;
+    public long getTransactionalIdOffset() {
+        return transactionalIdOffset;
     }
 
-    public Properties getKafkaProducerConfig() {
-        return kafkaProducerConfig;
+    public String getTransactionalIdPrefix() {
+        return transactionalIdPrefix;
     }
 
     @Override
@@ -63,13 +52,24 @@ class KafkaWriterState {
             return false;
         }
         KafkaWriterState that = (KafkaWriterState) o;
-        return producerId == that.producerId
-                && epoch == that.epoch
-                && kafkaProducerConfig.equals(that.kafkaProducerConfig);
+        return subtaskId == that.subtaskId && transactionalIdOffset == that.transactionalIdOffset;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(producerId, epoch, producer, kafkaProducerConfig);
+        return Objects.hash(subtaskId, transactionalIdOffset);
+    }
+
+    @Override
+    public String toString() {
+        return "KafkaWriterState{"
+                + "subtaskId="
+                + subtaskId
+                + ", transactionalIdOffset="
+                + transactionalIdOffset
+                + ", transactionalIdPrefix='"
+                + transactionalIdPrefix
+                + '\''
+                + '}';
     }
 }

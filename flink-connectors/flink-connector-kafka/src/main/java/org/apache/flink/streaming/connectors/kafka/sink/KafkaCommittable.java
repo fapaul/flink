@@ -17,19 +17,69 @@
 
 package org.apache.flink.streaming.connectors.kafka.sink;
 
+import java.util.Objects;
 import java.util.Properties;
 
-/** The current state of a {@link FlinkKafkaInternalProducer} which is ready to commit. */
+/**
+ * This class holds the necessary information to construct a new {@link FlinkKafkaInternalProducer}
+ * to commit transactions in {@link KafkaCommitter}.
+ */
 class KafkaCommittable {
 
     private final long producerId;
     private final short epoch;
     private final Properties kafkaProducerConfig;
 
-    public KafkaCommittable(KafkaWriterStateWrapper stateWrapper) {
-        final KafkaWriterState state = stateWrapper.getState();
-        this.producerId = state.getProducerId();
-        this.epoch = state.getEpoch();
-        this.kafkaProducerConfig = state.getKafkaProducerConfig();
+    public KafkaCommittable(FlinkKafkaInternalProducer<byte[], byte[]> producer) {
+        this(producer.getProducerId(), producer.getEpoch(), producer.getKafkaProducerConfig());
+    }
+
+    public KafkaCommittable(long producerId, short epoch, Properties kafkaProducerConfig) {
+        this.producerId = producerId;
+        this.epoch = epoch;
+        this.kafkaProducerConfig = kafkaProducerConfig;
+    }
+
+    public long getProducerId() {
+        return producerId;
+    }
+
+    public short getEpoch() {
+        return epoch;
+    }
+
+    public Properties getKafkaProducerConfig() {
+        return kafkaProducerConfig;
+    }
+
+    @Override
+    public String toString() {
+        return "KafkaCommittable{"
+                + "producerId="
+                + producerId
+                + ", epoch="
+                + epoch
+                + ", kafkaProducerConfig="
+                + kafkaProducerConfig
+                + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        KafkaCommittable that = (KafkaCommittable) o;
+        return producerId == that.producerId
+                && epoch == that.epoch
+                && kafkaProducerConfig.equals(that.kafkaProducerConfig);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(producerId, epoch, kafkaProducerConfig);
     }
 }

@@ -22,8 +22,6 @@ import org.apache.flink.util.Preconditions;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.internals.TransactionalRequestResult;
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +30,7 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
+import java.time.Duration;
 import java.util.Properties;
 
 /**
@@ -42,22 +40,18 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlinkKafkaInternalProducer.class);
 
+    private final Properties kafkaProducerConfig;
     @Nullable private final String transactionalId;
 
     public FlinkKafkaInternalProducer(Properties properties) {
         super(properties);
+        this.kafkaProducerConfig = properties;
         this.transactionalId = properties.getProperty(ProducerConfig.TRANSACTIONAL_ID_CONFIG);
     }
 
     @Override
-    public Map<MetricName, ? extends Metric> metrics() {
-        return null;
-    }
-
-    @Override
     public void close() {
-        throw new UnsupportedOperationException(
-                "Close without timeout is now allowed because it can leave lingering Kafka threads.");
+        close(Duration.ZERO);
     }
 
     @Override
@@ -68,14 +62,18 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
         }
     }
 
+    public Properties getKafkaProducerConfig() {
+        return kafkaProducerConfig;
+    }
+
     public short getEpoch() {
-        Object transactionManager = getField(this, "transactionManager");
+        Object transactionManager = getField("transactionManager");
         Object producerIdAndEpoch = getField(transactionManager, "producerIdAndEpoch");
         return (short) getField(producerIdAndEpoch, "epoch");
     }
 
     public long getProducerId() {
-        Object transactionManager = getField(this, "transactionManager");
+        Object transactionManager = getField("transactionManager");
         Object producerIdAndEpoch = getField(transactionManager, "producerIdAndEpoch");
         return (long) getField(producerIdAndEpoch, "producerId");
     }
@@ -89,7 +87,7 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
     private void flushNewPartitions() {
         LOG.info("Flushing new partitions");
         TransactionalRequestResult result = enqueueNewPartitions();
-        Object sender = getField(this, "sender");
+        Object sender = getField("sender");
         invoke(sender, "wakeup");
         result.await();
     }
@@ -102,7 +100,7 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
      * already done.
      */
     private TransactionalRequestResult enqueueNewPartitions() {
-        Object transactionManager = getField(this, "transactionManager");
+        Object transactionManager = getField("transactionManager");
         synchronized (transactionManager) {
             Object newPartitionsInTransaction =
                     getField(transactionManager, "newPartitionsInTransaction");
@@ -145,13 +143,16 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
     private static Object invoke(
             Object object, String methodName, Class<?>[] argTypes, Object[] args) {
         try {
-            Method method =
-                    object.getClass().getSuperclass().getDeclaredMethod(methodName, argTypes);
+            Method method = object.getClass().getDeclaredMethod(methodName, argTypes);
             method.setAccessible(true);
             return method.invoke(object, args);
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException("Incompatible KafkaProducer version", e);
         }
+    }
+
+    private Object getField(String fieldName) {
+        return getField(this, KafkaProducer.class, fieldName);
     }
 
     /**
@@ -168,7 +169,7 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
      */
     private static Object getField(Object object, Class<?> clazz, String fieldName) {
         try {
-            Field field = clazz.getSuperclass().getDeclaredField(fieldName);
+            Field field = clazz.getDeclaredField(fieldName);
             field.setAccessible(true);
             return field.get(object);
         } catch (NoSuchFieldException | IllegalAccessException e) {
@@ -194,7 +195,7 @@ class FlinkKafkaInternalProducer<K, V> extends KafkaProducer<K, V> {
                 producerId,
                 epoch);
 
-        Object transactionManager = getField(this, "transactionManager");
+        Object transactionManager = getField("transactionManager");
         synchronized (transactionManager) {
             Object topicPartitionBookkeeper =
                     getField(transactionManager, "topicPartitionBookkeeper");
