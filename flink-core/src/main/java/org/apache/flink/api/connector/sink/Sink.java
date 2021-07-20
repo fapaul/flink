@@ -43,7 +43,7 @@ import java.util.Optional;
  * @param <GlobalCommT> The type of the aggregated committable
  */
 @Experimental
-public interface Sink<InputT, CommT, WriterStateT, GlobalCommT> extends Serializable {
+public interface Sink<InputT> extends Serializable {
 
     /**
      * Create a {@link SinkWriter}.
@@ -53,33 +53,8 @@ public interface Sink<InputT, CommT, WriterStateT, GlobalCommT> extends Serializ
      * @return A sink writer.
      * @throws IOException if fail to create a writer.
      */
-    SinkWriter<InputT, CommT, WriterStateT> createWriter(
-            InitContext context, List<WriterStateT> states) throws IOException;
-
-    /**
-     * Creates a {@link Committer}.
-     *
-     * @return A committer.
-     * @throws IOException if fail to create a committer.
-     */
-    Optional<Committer<CommT>> createCommitter() throws IOException;
-
-    /**
-     * Creates a {@link GlobalCommitter}.
-     *
-     * @return A global committer.
-     * @throws IOException if fail to create a global committer.
-     */
-    Optional<GlobalCommitter<CommT, GlobalCommT>> createGlobalCommitter() throws IOException;
-
-    /** Returns the serializer of the committable type. */
-    Optional<SimpleVersionedSerializer<CommT>> getCommittableSerializer();
-
-    /** Returns the serializer of the aggregated committable type. */
-    Optional<SimpleVersionedSerializer<GlobalCommT>> getGlobalCommittableSerializer();
-
-    /** Return the serializer of the writer's state type. */
-    Optional<SimpleVersionedSerializer<WriterStateT>> getWriterStateSerializer();
+    SinkWriter<InputT> createWriter(
+            InitContext context) throws IOException;
 
     /** The interface exposes some runtime info for creating a {@link SinkWriter}. */
     interface InitContext {

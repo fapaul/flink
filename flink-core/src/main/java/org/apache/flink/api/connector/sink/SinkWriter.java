@@ -23,7 +23,6 @@ import org.apache.flink.annotation.Experimental;
 import org.apache.flink.api.common.eventtime.Watermark;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * The {@code SinkWriter} is responsible for writing data and handling any potential tmp area used
@@ -36,7 +35,7 @@ import java.util.List;
  * @param <WriterStateT> The type of the writer's state
  */
 @Experimental
-public interface SinkWriter<InputT, CommT, WriterStateT> extends AutoCloseable {
+public interface SinkWriter<InputT> extends AutoCloseable {
 
     /**
      * Add an element to the writer.
@@ -56,23 +55,6 @@ public interface SinkWriter<InputT, CommT, WriterStateT> extends AutoCloseable {
      * @throws IOException if fail to add a watermark.
      */
     default void writeWatermark(Watermark watermark) throws IOException {}
-
-    /**
-     * Prepare for a commit.
-     *
-     * <p>This will be called before we checkpoint the Writer's state in Streaming execution mode.
-     *
-     * @param flush Whether flushing the un-staged data or not
-     * @return The data is ready to commit.
-     * @throws IOException if fail to prepare for a commit.
-     */
-    List<CommT> prepareCommit(boolean flush) throws IOException;
-
-    /**
-     * @return The writer's state.
-     * @throws IOException if fail to snapshot writer's state.
-     */
-    List<WriterStateT> snapshotState() throws IOException;
 
     /** Context that {@link #write} can use for getting additional data about an input record. */
     interface Context {

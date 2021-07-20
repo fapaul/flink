@@ -20,11 +20,15 @@ package org.apache.flink.connector.file.sink.writer;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.api.connector.sink.Committer;
+import org.apache.flink.api.connector.sink.Committing;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.api.connector.sink.Stateful;
 import org.apache.flink.connector.file.sink.FileSink;
 import org.apache.flink.connector.file.sink.FileSinkCommittable;
 import org.apache.flink.core.fs.Path;
+import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.api.functions.sink.filesystem.BucketAssigner;
 import org.apache.flink.streaming.api.functions.sink.filesystem.BucketWriter;
 import org.apache.flink.streaming.api.functions.sink.filesystem.OutputFileConfig;
@@ -56,7 +60,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 @Internal
 public class FileWriter<IN>
-        implements SinkWriter<IN, FileSinkCommittable, FileWriterBucketState>,
+        implements SinkWriter<IN>, Committing<FileSinkCommittable>, Stateful<FileWriterBucketState>,
                 Sink.ProcessingTimeService.ProcessingTimeCallback {
 
     private static final Logger LOG = LoggerFactory.getLogger(FileWriter.class);
@@ -184,6 +188,11 @@ public class FileWriter<IN>
     }
 
     @Override
+    public Committer<FileSinkCommittable> createCommitter() throws IOException {
+        return null;
+    }
+
+    @Override
     public List<FileSinkCommittable> prepareCommit(boolean flush) throws IOException {
         List<FileSinkCommittable> committables = new ArrayList<>();
 
@@ -202,6 +211,16 @@ public class FileWriter<IN>
         }
 
         return committables;
+    }
+
+    @Override
+    public SimpleVersionedSerializer<FileSinkCommittable> getCommittableSerializer() {
+        return null;
+    }
+
+    @Override
+    public void initializeState() throws IOException {
+
     }
 
     @Override

@@ -106,7 +106,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  *     written to its output
  */
 @Experimental
-public class FileSink<IN> implements Sink<IN, FileSinkCommittable, FileWriterBucketState, Void> {
+public class FileSink<IN> implements Sink<IN> {
 
     private final BucketsBuilder<IN, ? extends BucketsBuilder<IN, ?>> bucketsBuilder;
 
@@ -115,50 +115,10 @@ public class FileSink<IN> implements Sink<IN, FileSinkCommittable, FileWriterBuc
     }
 
     @Override
-    public SinkWriter<IN, FileSinkCommittable, FileWriterBucketState> createWriter(
-            InitContext context, List<FileWriterBucketState> states) throws IOException {
+    public SinkWriter<IN> createWriter(
+            InitContext context) throws IOException {
         FileWriter<IN> writer = bucketsBuilder.createWriter(context);
-        writer.initializeState(states);
         return writer;
-    }
-
-    @Override
-    public Optional<SimpleVersionedSerializer<FileWriterBucketState>> getWriterStateSerializer() {
-        try {
-            return Optional.of(bucketsBuilder.getWriterStateSerializer());
-        } catch (IOException e) {
-            // it's not optimal that we have to do this but creating the serializers for the
-            // FileSink requires (among other things) a call to FileSystem.get() which declares
-            // IOException.
-            throw new FlinkRuntimeException("Could not create writer state serializer.", e);
-        }
-    }
-
-    @Override
-    public Optional<Committer<FileSinkCommittable>> createCommitter() throws IOException {
-        return Optional.of(bucketsBuilder.createCommitter());
-    }
-
-    @Override
-    public Optional<SimpleVersionedSerializer<FileSinkCommittable>> getCommittableSerializer() {
-        try {
-            return Optional.of(bucketsBuilder.getCommittableSerializer());
-        } catch (IOException e) {
-            // it's not optimal that we have to do this but creating the serializers for the
-            // FileSink requires (among other things) a call to FileSystem.get() which declares
-            // IOException.
-            throw new FlinkRuntimeException("Could not create committable serializer.", e);
-        }
-    }
-
-    @Override
-    public Optional<GlobalCommitter<FileSinkCommittable, Void>> createGlobalCommitter() {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<SimpleVersionedSerializer<Void>> getGlobalCommittableSerializer() {
-        return Optional.empty();
     }
 
     public static <IN> DefaultRowFormatBuilder<IN> forRowFormat(
