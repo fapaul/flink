@@ -32,23 +32,21 @@ class TransactionalIdFactory {
 
     /**
      * Constructs a transactionalId with the following format {@code
-     * transactionalIdPrefix-subtaskId-offset}.
+     * transactionalIdPrefix-subtaskId-checkpointOffset}.
      *
      * @param transactionalIdPrefix prefix for the id
      * @param subtaskId describing the subtask which is opening the transaction
-     * @param offset an always incrementing number usually capturing the number of checkpoints taken
-     *     by the subtask
+     * @param checkpointOffset an always incrementing number usually capturing the number of
+     *     checkpoints taken by the subtask
      * @return transactionalId
      */
     public static String buildTransactionalId(
-            String transactionalIdPrefix, int subtaskId, long offset) {
-        final StringBuilder sb = new StringBuilder();
-        return sb.append(transactionalIdPrefix)
-                .append(TRANSACTIONAL_ID_DELIMITER)
-                .append(subtaskId)
-                .append(TRANSACTIONAL_ID_DELIMITER)
-                .append(offset)
-                .toString();
+            String transactionalIdPrefix, int subtaskId, long checkpointOffset) {
+        return transactionalIdPrefix
+                + TRANSACTIONAL_ID_DELIMITER
+                + subtaskId
+                + TRANSACTIONAL_ID_DELIMITER
+                + checkpointOffset;
     }
 
     /**

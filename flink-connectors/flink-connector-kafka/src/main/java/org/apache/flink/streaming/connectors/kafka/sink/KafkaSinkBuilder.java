@@ -150,6 +150,10 @@ public class KafkaSinkBuilder<IN> {
      *
      * <p>The size of the prefix is capped by {@link #MAXIMUM_PREFIX_BYTES} formatted with UTF-8.
      *
+     * <p>It is important to keep the prefix stable across application restarts. If the prefix
+     * changes it might happen that lingering transactions are not correctly aborted and newly
+     * written messages are not immediately consumable until the transactions timeout.
+     *
      * @param transactionalIdPrefix
      * @return {@link KafkaSinkBuilder}
      */
