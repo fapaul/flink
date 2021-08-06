@@ -24,11 +24,13 @@ import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
+import org.apache.flink.metrics.MetricGroup;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 /**
  * Flink Sink to produce data into a Kafka topic. The sink supports all delivery guarantees
@@ -85,6 +87,8 @@ public class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterStat
     @Override
     public SinkWriter<IN, KafkaCommittable, KafkaWriterState> createWriter(
             InitContext context, List<KafkaWriterState> states) throws IOException {
+        final Supplier<MetricGroup> metricGroupSupplier =
+                () -> context.metricGroup().addGroup("user");
         return new KafkaWriter<>(
                 deliveryGuarantee,
                 kafkaProducerConfig,
@@ -92,7 +96,7 @@ public class KafkaSink<IN> implements Sink<IN, KafkaCommittable, KafkaWriterStat
                 context,
                 recordSerializer,
                 new InitContextInitializationContextAdapter(
-                        context, metricGroup -> metricGroup.addGroup("user")),
+                        context.getUserCodeClassLoader(), metricGroupSupplier),
                 states);
     }
 

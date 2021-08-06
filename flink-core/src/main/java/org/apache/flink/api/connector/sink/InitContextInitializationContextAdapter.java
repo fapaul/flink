@@ -21,7 +21,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.util.UserCodeClassLoader;
 
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Adapter between {@link Sink.InitContext} and {@link SerializationSchema.InitializationContext}.
@@ -29,22 +29,26 @@ import java.util.function.Function;
 public class InitContextInitializationContextAdapter
         implements SerializationSchema.InitializationContext {
 
-    private final Function<MetricGroup, MetricGroup> mapMetricGroup;
-    private final Sink.InitContext initContext;
+    private final UserCodeClassLoader userCodeClassLoader;
+    private final Supplier<MetricGroup> metricGroupSupplier;
+    private MetricGroup cachedMetricGroup;
 
     public InitContextInitializationContextAdapter(
-            Sink.InitContext initContext, Function<MetricGroup, MetricGroup> mapMetricGroup) {
-        this.initContext = initContext;
-        this.mapMetricGroup = mapMetricGroup;
+            UserCodeClassLoader userCodeClassLoader, Supplier<MetricGroup> metricGroupSupplier) {
+        this.userCodeClassLoader = userCodeClassLoader;
+        this.metricGroupSupplier = metricGroupSupplier;
     }
 
     @Override
     public MetricGroup getMetricGroup() {
-        return mapMetricGroup.apply(initContext.metricGroup());
+        if (cachedMetricGroup == null) {
+            cachedMetricGroup = metricGroupSupplier.get();
+        }
+        return cachedMetricGroup;
     }
 
     @Override
     public UserCodeClassLoader getUserCodeClassLoader() {
-        return initContext.getUserCodeClassLoader();
+        return userCodeClassLoader;
     }
 }
