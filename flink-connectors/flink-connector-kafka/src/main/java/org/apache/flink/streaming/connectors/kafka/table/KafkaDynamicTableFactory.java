@@ -176,7 +176,7 @@ public class KafkaDynamicTableFactory
                 partitionDiscoveryInterval.orElse(-1L).toString());
 
         final DataType physicalDataType =
-                context.getCatalogTable().getSchema().toPhysicalRowDataType();
+                context.getCatalogTable().getResolvedSchema().toPhysicalRowDataType();
 
         final int[] keyProjection = createKeyFormatProjection(tableOptions, physicalDataType);
 
@@ -225,7 +225,7 @@ public class KafkaDynamicTableFactory
                 context.getObjectIdentifier(), context.getCatalogTable(), valueEncodingFormat);
 
         final DataType physicalDataType =
-                context.getCatalogTable().getSchema().toPhysicalRowDataType();
+                context.getCatalogTable().getResolvedSchema().toPhysicalRowDataType();
 
         final int[] keyProjection = createKeyFormatProjection(tableOptions, physicalDataType);
 
@@ -311,7 +311,7 @@ public class KafkaDynamicTableFactory
 
     private static void validatePKConstraints(
             ObjectIdentifier tableName, CatalogTable catalogTable, Format format) {
-        if (catalogTable.getSchema().getPrimaryKey().isPresent()
+        if (catalogTable.getUnresolvedSchema().getPrimaryKey().isPresent()
                 && format.getChangelogMode().containsOnly(RowKind.INSERT)) {
             Configuration options = Configuration.fromMap(catalogTable.getOptions());
             String formatName =
