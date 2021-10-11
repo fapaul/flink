@@ -86,7 +86,7 @@ public class HiveDynamicTableFactoryTest {
         assertFalse(tableSource1 instanceof HiveLookupTableSource);
         HiveTableSource tableSource = (HiveTableSource) tableSource1;
         Configuration configuration = new Configuration();
-        tableSource.catalogTable.getOptions().forEach(configuration::setString);
+        tableSource.catalogOptions.forEach(configuration::setString);
         assertEquals(
                 PartitionOrder.PARTITION_NAME, configuration.get(STREAMING_SOURCE_PARTITION_ORDER));
 
@@ -121,7 +121,7 @@ public class HiveDynamicTableFactoryTest {
         assertTrue(tableSource3 instanceof HiveTableSource);
         HiveTableSource hiveTableSource3 = (HiveTableSource) tableSource3;
         Configuration configuration1 = new Configuration();
-        hiveTableSource3.catalogTable.getOptions().forEach(configuration1::setString);
+        hiveTableSource3.catalogOptions.forEach(configuration1::setString);
         PartitionOrder partitionOrder1 = configuration1.get(STREAMING_SOURCE_PARTITION_ORDER);
         assertEquals(PartitionOrder.PARTITION_NAME, partitionOrder1);
 
@@ -138,7 +138,7 @@ public class HiveDynamicTableFactoryTest {
         HiveTableSource hiveTableSource = (HiveTableSource) tableSource4;
 
         Configuration configuration2 = new Configuration();
-        hiveTableSource.catalogTable.getOptions().forEach(configuration2::setString);
+        hiveTableSource.catalogOptions.forEach(configuration2::setString);
         PartitionOrder partitionOrder2 = configuration2.get(STREAMING_SOURCE_PARTITION_ORDER);
         assertEquals(PartitionOrder.PARTITION_TIME, partitionOrder2);
     }
@@ -169,7 +169,7 @@ public class HiveDynamicTableFactoryTest {
         assertEquals(Duration.ofHours(1), lookupFunction.getReloadInterval());
         HiveLookupTableSource lookupTableSource = (HiveLookupTableSource) tableSource2;
         Configuration configuration = new Configuration();
-        lookupTableSource.catalogTable.getOptions().forEach(configuration::setString);
+        lookupTableSource.catalogOptions.forEach(configuration::setString);
         assertEquals(
                 configuration.get(STREAMING_SOURCE_PARTITION_ORDER), PartitionOrder.PARTITION_NAME);
 
@@ -195,7 +195,7 @@ public class HiveDynamicTableFactoryTest {
         assertTrue(tableSource3 instanceof HiveLookupTableSource);
         HiveLookupTableSource tableSource = (HiveLookupTableSource) tableSource3;
         Configuration configuration1 = new Configuration();
-        tableSource.catalogTable.getOptions().forEach(configuration1::setString);
+        tableSource.catalogOptions.forEach(configuration1::setString);
 
         assertEquals(
                 configuration1.get(STREAMING_SOURCE_PARTITION_ORDER),
@@ -214,7 +214,7 @@ public class HiveDynamicTableFactoryTest {
         assertTrue(tableSource4 instanceof HiveLookupTableSource);
         HiveLookupTableSource lookupTableSource4 = (HiveLookupTableSource) tableSource4;
         Configuration configuration4 = new Configuration();
-        lookupTableSource4.catalogTable.getOptions().forEach(configuration4::setString);
+        lookupTableSource4.catalogOptions.forEach(configuration4::setString);
         assertEquals(configuration4.get(STREAMING_SOURCE_MONITOR_INTERVAL), Duration.ofMinutes(5L));
     }
 

@@ -61,6 +61,8 @@ import org.apache.hadoop.hive.ql.io.StorageFormatFactory;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 
+import javax.annotation.Nullable;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -95,6 +97,7 @@ public class HiveTableUtil {
 
     private HiveTableUtil() {}
 
+    @Deprecated
     public static TableSchema createTableSchema(
             HiveConf hiveConf,
             Table hiveTable,
@@ -110,19 +113,69 @@ public class HiveTableUtil {
                         HiveTableUtil.relyConstraint((byte) 0));
         // PK columns cannot be null
         primaryKey.ifPresent(pk -> notNullColumns.addAll(pk.getColumns()));
-        return createTableSchema(
-                fields, hiveTable.getPartitionKeys(), notNullColumns, primaryKey.orElse(null));
+        List<FieldSchema> allCols = new ArrayList<>(fields);
+        allCols.addAll(hiveTable.getPartitionKeys());
+
+        Tuple2<String[], DataType[]> columnInformation =
+                extractColumnInformation(allCols, notNullColumns);
+
+        TableSchema.Builder builder =
+                TableSchema.builder().fields(columnInformation.f0, columnInformation.f1);
+        primaryKey.ifPresent(
+                uniqueConstraint ->
+                        builder.primaryKey(
+                                uniqueConstraint.getName(),
+                                uniqueConstraint.getColumns().toArray(new String[0])));
+        return builder.build();
     }
 
-    /** Create a Flink's TableSchema from Hive table's columns and partition keys. */
-    public static TableSchema createTableSchema(
+    /** Create a Flink's Schema from Hive table's columns and partition keys. */
+    public static org.apache.flink.table.api.Schema createSchema(
             List<FieldSchema> cols,
             List<FieldSchema> partitionKeys,
             Set<String> notNullColumns,
-            UniqueConstraint primaryKey) {
+            @Nullable UniqueConstraint primaryKey) {
         List<FieldSchema> allCols = new ArrayList<>(cols);
         allCols.addAll(partitionKeys);
 
+        Tuple2<String[], DataType[]> columnInformation =
+                extractColumnInformation(allCols, notNullColumns);
+
+        org.apache.flink.table.api.Schema.Builder builder =
+                org.apache.flink.table.api.Schema.newBuilder()
+                        .fromFields(columnInformation.f0, columnInformation.f1);
+        if (primaryKey != null) {
+            builder.primaryKeyNamed(
+                    primaryKey.getName(), primaryKey.getColumns().toArray(new String[0]));
+        }
+        return builder.build();
+    }
+
+    /** Create a Flink's Schema from Hive table's columns and partition keys. */
+    public static org.apache.flink.table.api.Schema createSchema(
+            HiveConf hiveConf,
+            Table hiveTable,
+            HiveMetastoreClientWrapper client,
+            HiveShim hiveShim) {
+        List<FieldSchema> fields = getNonPartitionFields(hiveConf, hiveTable, hiveShim);
+        Set<String> notNullColumns =
+                client.getNotNullColumns(hiveConf, hiveTable.getDbName(), hiveTable.getTableName());
+        Optional<UniqueConstraint> primaryKey =
+                client.getPrimaryKey(
+                        hiveTable.getDbName(),
+                        hiveTable.getTableName(),
+                        HiveTableUtil.relyConstraint((byte) 0));
+        // PK columns cannot be null
+        primaryKey.ifPresent(pk -> notNullColumns.addAll(pk.getColumns()));
+        List<FieldSchema> allCols = new ArrayList<>(fields);
+        allCols.addAll(hiveTable.getPartitionKeys());
+
+        return createSchema(
+                allCols, hiveTable.getPartitionKeys(), notNullColumns, primaryKey.orElse(null));
+    }
+
+    private static Tuple2<String[], DataType[]> extractColumnInformation(
+            List<FieldSchema> allCols, Set<String> notNullColumns) {
         String[] colNames = new String[allCols.size()];
         DataType[] colTypes = new DataType[allCols.size()];
 
@@ -136,17 +189,11 @@ public class HiveTableUtil {
                 colTypes[i] = colTypes[i].notNull();
             }
         }
-
-        TableSchema.Builder builder = TableSchema.builder().fields(colNames, colTypes);
-        if (primaryKey != null) {
-            builder.primaryKey(
-                    primaryKey.getName(), primaryKey.getColumns().toArray(new String[0]));
-        }
-        return builder.build();
+        return Tuple2.of(colNames, colTypes);
     }
 
     /** Create Hive columns from Flink TableSchema. */
-    public static List<FieldSchema> createHiveColumns(TableSchema schema) {
+    private static List<FieldSchema> createHiveColumns(TableSchema schema) {
         String[] fieldNames = schema.getFieldNames();
         DataType[] fieldTypes = schema.getFieldDataTypes();
 

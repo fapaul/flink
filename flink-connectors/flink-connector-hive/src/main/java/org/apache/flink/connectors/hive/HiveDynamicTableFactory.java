@@ -22,7 +22,6 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connectors.hive.util.JobConfUtils;
-import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.hive.HiveCatalog;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
@@ -30,7 +29,6 @@ import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.filesystem.FileSystemConnectorOptions;
-import org.apache.flink.util.Preconditions;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.mapred.JobConf;
@@ -87,7 +85,10 @@ public class HiveDynamicTableFactory implements DynamicTableSourceFactory, Dynam
                 context.getConfiguration(),
                 jobConf,
                 context.getObjectIdentifier(),
-                context.getCatalogTable(),
+                context.getPhysicalRowDataType(),
+                context.getCatalogTable().getOptions(),
+                context.getCatalogTable().getResolvedSchema().getColumnNames(),
+                context.getCatalogTable().getPartitionKeys(),
                 configuredParallelism);
     }
 
@@ -109,8 +110,6 @@ public class HiveDynamicTableFactory implements DynamicTableSourceFactory, Dynam
                     context.isTemporary());
         }
 
-        final CatalogTable catalogTable = Preconditions.checkNotNull(context.getCatalogTable());
-
         final boolean isStreamingSource = configuration.get(STREAMING_SOURCE_ENABLE);
         final boolean includeAllPartition =
                 STREAMING_SOURCE_PARTITION_INCLUDE
@@ -124,14 +123,20 @@ public class HiveDynamicTableFactory implements DynamicTableSourceFactory, Dynam
                     jobConf,
                     context.getConfiguration(),
                     context.getObjectIdentifier().toObjectPath(),
-                    catalogTable);
+                    context.getPhysicalRowDataType(),
+                    context.getCatalogTable().getOptions(),
+                    context.getCatalogTable().getResolvedSchema().getColumnNames(),
+                    context.getCatalogTable().getPartitionKeys());
         } else {
             // hive table source that has scan and lookup ability
             return new HiveLookupTableSource(
                     jobConf,
                     context.getConfiguration(),
                     context.getObjectIdentifier().toObjectPath(),
-                    catalogTable);
+                    context.getPhysicalRowDataType(),
+                    context.getCatalogTable().getOptions(),
+                    context.getCatalogTable().getResolvedSchema().getColumnNames(),
+                    context.getCatalogTable().getPartitionKeys());
         }
     }
 }

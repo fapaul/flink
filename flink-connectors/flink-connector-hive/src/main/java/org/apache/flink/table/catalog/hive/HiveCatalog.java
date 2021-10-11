@@ -21,14 +21,13 @@ package org.apache.flink.table.catalog.hive;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.hadoop.mapred.utils.HadoopUtils;
 import org.apache.flink.connectors.hive.HiveDynamicTableFactory;
-import org.apache.flink.connectors.hive.HiveTableFactory;
 import org.apache.flink.sql.parser.hive.ddl.HiveDDLUtils;
 import org.apache.flink.sql.parser.hive.ddl.SqlAlterHiveDatabase;
 import org.apache.flink.sql.parser.hive.ddl.SqlAlterHiveDatabaseOwner;
 import org.apache.flink.sql.parser.hive.ddl.SqlAlterHiveTable.AlterTableOp;
 import org.apache.flink.sql.parser.hive.ddl.SqlCreateHiveDatabase;
 import org.apache.flink.sql.parser.hive.ddl.SqlCreateHiveTable;
-import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.catalog.AbstractCatalog;
 import org.apache.flink.table.catalog.CatalogBaseTable;
@@ -41,8 +40,7 @@ import org.apache.flink.table.catalog.CatalogPartitionImpl;
 import org.apache.flink.table.catalog.CatalogPartitionSpec;
 import org.apache.flink.table.catalog.CatalogPropertiesUtil;
 import org.apache.flink.table.catalog.CatalogTable;
-import org.apache.flink.table.catalog.CatalogTableImpl;
-import org.apache.flink.table.catalog.CatalogViewImpl;
+import org.apache.flink.table.catalog.CatalogView;
 import org.apache.flink.table.catalog.FunctionLanguage;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
@@ -69,12 +67,9 @@ import org.apache.flink.table.catalog.hive.util.HiveStatsUtil;
 import org.apache.flink.table.catalog.hive.util.HiveTableUtil;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
-import org.apache.flink.table.descriptors.DescriptorProperties;
-import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
 import org.apache.flink.table.factories.FunctionDefinitionFactory;
-import org.apache.flink.table.factories.TableFactory;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.hadoop.conf.Configuration;
@@ -317,11 +312,6 @@ public class HiveCatalog extends AbstractCatalog {
     @Override
     public Optional<Factory> getFactory() {
         return Optional.of(new HiveDynamicTableFactory(hiveConf));
-    }
-
-    @Override
-    public Optional<TableFactory> getTableFactory() {
-        return Optional.of(new HiveTableFactory());
     }
 
     @Override
@@ -733,50 +723,27 @@ public class HiveCatalog extends AbstractCatalog {
         // Table properties
         Map<String, String> properties = new HashMap<>(hiveTable.getParameters());
 
-        boolean isHiveTable = isHiveTable(properties);
-
-        TableSchema tableSchema;
         // Partition keys
         List<String> partitionKeys = new ArrayList<>();
 
-        if (isHiveTable) {
-            // Table schema
-            tableSchema = HiveTableUtil.createTableSchema(hiveConf, hiveTable, client, hiveShim);
+        // Table schema
+        Schema schema = HiveTableUtil.createSchema(hiveConf, hiveTable, client, hiveShim);
 
-            if (!hiveTable.getPartitionKeys().isEmpty()) {
-                partitionKeys = getFieldNames(hiveTable.getPartitionKeys());
-            }
-        } else {
-            properties = retrieveFlinkProperties(properties);
-            DescriptorProperties tableSchemaProps = new DescriptorProperties(true);
-            tableSchemaProps.putProperties(properties);
-            // try to get table schema with both new and old (1.10) key, in order to support tables
-            // created in old version
-            tableSchema =
-                    tableSchemaProps
-                            .getOptionalTableSchema(Schema.SCHEMA)
-                            .orElseGet(
-                                    () ->
-                                            tableSchemaProps
-                                                    .getOptionalTableSchema("generic.table.schema")
-                                                    .orElseGet(
-                                                            () -> TableSchema.builder().build()));
-            partitionKeys = tableSchemaProps.getPartitionKeys();
-            // remove the schema from properties
-            properties = CatalogTableImpl.removeRedundant(properties, tableSchema, partitionKeys);
+        if (!hiveTable.getPartitionKeys().isEmpty()) {
+            partitionKeys = getFieldNames(hiveTable.getPartitionKeys());
         }
 
         String comment = properties.remove(HiveCatalogConfig.COMMENT);
 
         if (isView) {
-            return new CatalogViewImpl(
+            return CatalogView.of(
+                    schema,
+                    comment,
                     hiveTable.getViewOriginalText(),
                     hiveTable.getViewExpandedText(),
-                    tableSchema,
-                    properties,
-                    comment);
+                    properties);
         } else {
-            return new CatalogTableImpl(tableSchema, partitionKeys, properties, comment);
+            return CatalogTable.of(schema, comment, partitionKeys, properties);
         }
     }
 

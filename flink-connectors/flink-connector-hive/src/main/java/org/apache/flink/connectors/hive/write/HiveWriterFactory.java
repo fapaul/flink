@@ -21,7 +21,6 @@ package org.apache.flink.connectors.hive.write;
 import org.apache.flink.connectors.hive.CachedSerializedValue;
 import org.apache.flink.connectors.hive.FlinkHiveException;
 import org.apache.flink.connectors.hive.JobConfWrapper;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.hive.client.HiveShim;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.util.DataFormatConverters;
@@ -105,7 +104,8 @@ public class HiveWriterFactory implements Serializable {
             JobConf jobConf,
             Class hiveOutputFormatClz,
             SerDeInfo serDeInfo,
-            TableSchema schema,
+            String[] allColumns,
+            DataType[] allTypes,
             String[] partitionColumns,
             Properties tableProperties,
             HiveShim hiveShim,
@@ -120,8 +120,8 @@ public class HiveWriterFactory implements Serializable {
         } catch (IOException e) {
             throw new FlinkHiveException("Failed to serialize SerDeInfo", e);
         }
-        this.allColumns = schema.getFieldNames();
-        this.allTypes = schema.getFieldDataTypes();
+        this.allColumns = allColumns;
+        this.allTypes = allTypes;
         this.partitionColumns = partitionColumns;
         this.tableProperties = tableProperties;
         this.hiveShim = hiveShim;

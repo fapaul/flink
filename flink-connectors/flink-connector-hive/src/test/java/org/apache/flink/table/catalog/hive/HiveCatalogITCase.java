@@ -483,10 +483,12 @@ public class HiveCatalogITCase {
         CatalogBaseTable catalogTable =
                 builtInCat.getTable(
                         new ObjectPath(EnvironmentSettings.DEFAULT_BUILTIN_DATABASE, "copy"));
-        assertEquals(1, catalogTable.getOptions().size());
-        assertEquals("COLLECTION", catalogTable.getOptions().get(FactoryUtil.CONNECTOR.key()));
-        assertEquals(1, catalogTable.getSchema().getFieldCount());
-        assertEquals("x", catalogTable.getSchema().getFieldNames()[0]);
+        assertEquals(4, catalogTable.getOptions().size());
+        assertEquals(
+                "COLLECTION",
+                catalogTable.getOptions().get("flink." + FactoryUtil.CONNECTOR.key()));
+        assertEquals(1, catalogTable.getUnresolvedSchema().getColumns().size());
+        assertEquals("x", catalogTable.getUnresolvedSchema().getColumns().get(0).getName());
         assertEquals(DataTypes.INT(), catalogTable.getSchema().getFieldDataTypes()[0]);
     }
 

@@ -48,6 +48,8 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
 
+import org.apache.flink.shaded.guava30.com.google.common.collect.Lists;
+
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -58,7 +60,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +72,7 @@ import static org.apache.flink.table.filesystem.FileSystemConnectorOptions.STREA
 import static org.apache.flink.table.filesystem.FileSystemConnectorOptions.STREAMING_SOURCE_PARTITION_INCLUDE;
 import static org.apache.flink.table.filesystem.FileSystemConnectorOptions.STREAMING_SOURCE_PARTITION_ORDER;
 import static org.apache.flink.util.Preconditions.checkArgument;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Builder to build {@link HiveSource} instances. */
 @PublicEvolving
@@ -83,9 +85,10 @@ public class HiveSourceBuilder {
 
     private final ObjectPath tablePath;
     private final Map<String, String> tableOptions;
-    private final TableSchema fullSchema;
-    private final List<String> partitionKeys;
+    @Nullable private final List<String> partitionKeys;
+    @Nonnull private final List<String> columnNames;
     private final String hiveVersion;
+    private final DataType dataType;
 
     private int[] projectedFields;
     private Long limit;
@@ -103,6 +106,7 @@ public class HiveSourceBuilder {
      * @param tableOptions additional options needed to read the table, which take precedence over
      *     table properties stored in metastore
      */
+    @Deprecated
     public HiveSourceBuilder(
             @Nonnull JobConf jobConf,
             @Nonnull ReadableConfig flinkConf,
@@ -119,8 +123,10 @@ public class HiveSourceBuilder {
         try (HiveMetastoreClientWrapper client =
                 new HiveMetastoreClientWrapper(hiveConf, hiveShim)) {
             Table hiveTable = client.getTable(dbName, tableName);
-            this.fullSchema =
+            TableSchema fullSchema =
                     HiveTableUtil.createTableSchema(hiveConf, hiveTable, client, hiveShim);
+            this.columnNames = Lists.newArrayList(fullSchema.getFieldNames());
+            this.dataType = fullSchema.toPhysicalRowDataType();
             this.partitionKeys = HiveCatalog.getFieldNames(hiveTable.getPartitionKeys());
             this.tableOptions = new HashMap<>(hiveTable.getParameters());
             this.tableOptions.putAll(tableOptions);
@@ -141,6 +147,7 @@ public class HiveSourceBuilder {
      * @param tablePath path of the table to be read
      * @param catalogTable the table to be read
      */
+    @Deprecated
     public HiveSourceBuilder(
             @Nonnull JobConf jobConf,
             @Nonnull ReadableConfig flinkConf,
@@ -151,9 +158,45 @@ public class HiveSourceBuilder {
         this.flinkConf = flinkConf;
         this.tablePath = tablePath;
         this.hiveVersion = hiveVersion == null ? HiveShimLoader.getHiveVersion() : hiveVersion;
-        this.fullSchema = catalogTable.getSchema();
+        TableSchema fullSchema = catalogTable.getSchema();
+        this.columnNames = Lists.newArrayList(fullSchema.getFieldNames());
+        this.dataType = fullSchema.toPhysicalRowDataType();
         this.partitionKeys = catalogTable.getPartitionKeys();
         this.tableOptions = catalogTable.getOptions();
+        validateScanConfigurations(tableOptions);
+        checkAcidTable(tableOptions, tablePath);
+    }
+
+    /**
+     * Creates a builder to read a hive table.
+     *
+     * @param jobConf holds hive and hadoop configurations
+     * @param flinkConf holds flink configurations
+     * @param hiveVersion the version of hive in use, if it's null the version will be automatically
+     *     detected
+     * @param tablePath path of the table to be read
+     * @param columnNames names of the different columns
+     * @param connectorOptions options from the catalog table
+     * @param partitionKeys columns used to compute the target partition
+     * @param physicalRowDataType holding type information about the incoming rows
+     */
+    public HiveSourceBuilder(
+            @Nonnull JobConf jobConf,
+            @Nonnull ReadableConfig flinkConf,
+            @Nonnull ObjectPath tablePath,
+            @Nonnull Map<String, String> connectorOptions,
+            @Nonnull List<String> columnNames,
+            @Nonnull DataType physicalRowDataType,
+            @Nullable String hiveVersion,
+            @Nullable List<String> partitionKeys) {
+        this.jobConf = jobConf;
+        this.flinkConf = flinkConf;
+        this.tablePath = tablePath;
+        this.hiveVersion = hiveVersion == null ? HiveShimLoader.getHiveVersion() : hiveVersion;
+        this.partitionKeys = partitionKeys;
+        this.tableOptions = checkNotNull(connectorOptions);
+        this.columnNames = checkNotNull(columnNames);
+        this.dataType = checkNotNull(physicalRowDataType);
         validateScanConfigurations(tableOptions);
         checkAcidTable(tableOptions, tablePath);
     }
@@ -213,8 +256,6 @@ public class HiveSourceBuilder {
                                 HiveShimLoader.loadHiveShim(hiveVersion),
                                 new JobConfWrapper(jobConf),
                                 partitionKeys,
-                                fullSchema.getFieldDataTypes(),
-                                fullSchema.getFieldNames(),
                                 configuration,
                                 defaultPartitionName);
             }
@@ -288,33 +329,21 @@ public class HiveSourceBuilder {
     }
 
     private RowType getProducedRowType() {
-        TableSchema producedSchema;
-        if (projectedFields == null) {
-            producedSchema = fullSchema;
-        } else {
-            String[] fullNames = fullSchema.getFieldNames();
-            DataType[] fullTypes = fullSchema.getFieldDataTypes();
-            producedSchema =
-                    TableSchema.builder()
-                            .fields(
-                                    Arrays.stream(projectedFields)
-                                            .mapToObj(i -> fullNames[i])
-                                            .toArray(String[]::new),
-                                    Arrays.stream(projectedFields)
-                                            .mapToObj(i -> fullTypes[i])
-                                            .toArray(DataType[]::new))
-                            .build();
-        }
-        return (RowType) producedSchema.toRowDataType().bridgedTo(RowData.class).getLogicalType();
+        return (RowType)
+                DataType.projectFields(dataType, projectedFields)
+                        .bridgedTo(RowData.class)
+                        .getLogicalType();
     }
 
     private BulkFormat<RowData, HiveSourceSplit> createDefaultBulkFormat() {
+        final DataType[] dataTypes = new DataType[dataType.getChildren().size()];
+        final String[] columns = new String[columnNames.size()];
         return LimitableBulkFormat.create(
                 new HiveBulkFormatAdapter(
                         new JobConfWrapper(jobConf),
                         partitionKeys,
-                        fullSchema.getFieldNames(),
-                        fullSchema.getFieldDataTypes(),
+                        columns,
+                        dataType.getChildren().toArray(dataTypes),
                         hiveVersion,
                         getProducedRowType(),
                         flinkConf.get(HiveOptions.TABLE_EXEC_HIVE_FALLBACK_MAPRED_READER)),

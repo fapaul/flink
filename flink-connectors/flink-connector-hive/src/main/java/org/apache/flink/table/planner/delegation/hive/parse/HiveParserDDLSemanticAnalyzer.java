@@ -21,6 +21,7 @@ package org.apache.flink.table.planner.delegation.hive.parse;
 import org.apache.flink.sql.parser.hive.ddl.HiveDDLUtils;
 import org.apache.flink.sql.parser.hive.ddl.SqlAlterHiveDatabase;
 import org.apache.flink.sql.parser.hive.ddl.SqlCreateHiveTable;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
@@ -618,8 +619,8 @@ public class HiveParserDDLSemanticAnalyzer {
         hiveParser.analyzeCreateView(createViewInfo, context, queryState, hiveShim);
 
         ObjectIdentifier viewIdentifier = parseObjectIdentifier(createViewInfo.getCompoundName());
-        TableSchema schema =
-                HiveTableUtil.createTableSchema(
+        Schema schema =
+                HiveTableUtil.createSchema(
                         createViewInfo.getSchema(),
                         Collections.emptyList(),
                         Collections.emptySet(),
@@ -635,12 +636,12 @@ public class HiveParserDDLSemanticAnalyzer {
             }
         }
         CatalogView catalogView =
-                new CatalogViewImpl(
+                CatalogView.of(
+                        schema,
+                        comment,
                         createViewInfo.getOriginalText(),
                         createViewInfo.getExpandedText(),
-                        schema,
-                        props,
-                        comment);
+                        props);
         if (isAlterViewAs) {
             return new AlterViewAsOperation(viewIdentifier, catalogView);
         } else {
@@ -951,12 +952,10 @@ public class HiveParserDDLSemanticAnalyzer {
         if (uniqueConstraint != null) {
             notNullColSet.addAll(uniqueConstraint.getColumns());
         }
-        TableSchema tableSchema =
-                HiveTableUtil.createTableSchema(cols, partCols, notNullColSet, uniqueConstraint);
+        Schema schema = HiveTableUtil.createSchema(cols, partCols, notNullColSet, uniqueConstraint);
         return new CreateTableOperation(
                 identifier,
-                new CatalogTableImpl(
-                        tableSchema, HiveCatalog.getFieldNames(partCols), props, comment),
+                CatalogTable.of(schema, comment, HiveCatalog.getFieldNames(partCols), props),
                 ifNotExists,
                 isTemporary);
     }

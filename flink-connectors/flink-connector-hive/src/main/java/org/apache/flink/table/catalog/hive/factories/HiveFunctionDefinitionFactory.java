@@ -19,7 +19,6 @@
 package org.apache.flink.table.catalog.hive.factories;
 
 import org.apache.flink.api.java.typeutils.GenericTypeInfo;
-import org.apache.flink.connectors.hive.HiveTableFactory;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.catalog.CatalogFunction;
 import org.apache.flink.table.catalog.hive.client.HiveShim;
@@ -48,7 +47,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A factory to instantiate Hive UDFs as Flink UDFs. */
 public class HiveFunctionDefinitionFactory implements FunctionDefinitionFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(HiveTableFactory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HiveFunctionDefinitionFactory.class);
 
     private final HiveShim hiveShim;
 

@@ -87,8 +87,6 @@ public class HivePartitionFetcherTest {
                         hiveShim,
                         jobConfWrapper,
                         partitionKeys,
-                        fieldTypes,
-                        fieldNames,
                         flinkConf,
                         defaultPartName);
         fetcherContext.open();
@@ -102,8 +100,6 @@ public class HivePartitionFetcherTest {
                         hiveShim,
                         jobConfWrapper,
                         partitionKeys,
-                        fieldTypes,
-                        fieldNames,
                         flinkConf,
                         defaultPartName);
         fetcherContext.open();
@@ -117,8 +113,6 @@ public class HivePartitionFetcherTest {
                         hiveShim,
                         jobConfWrapper,
                         partitionKeys,
-                        fieldTypes,
-                        fieldNames,
                         flinkConf,
                         defaultPartName);
         fetcherContext.open();
@@ -135,8 +129,6 @@ public class HivePartitionFetcherTest {
                 HiveShim hiveShim,
                 JobConfWrapper confWrapper,
                 List<String> partitionKeys,
-                DataType[] fieldTypes,
-                String[] fieldNames,
                 Configuration configuration,
                 String defaultPartitionName) {
             super(
@@ -144,8 +136,6 @@ public class HivePartitionFetcherTest {
                     hiveShim,
                     confWrapper,
                     partitionKeys,
-                    fieldTypes,
-                    fieldNames,
                     configuration,
                     defaultPartitionName);
         }

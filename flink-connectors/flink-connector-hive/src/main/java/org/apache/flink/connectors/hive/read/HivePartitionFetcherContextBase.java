@@ -29,7 +29,6 @@ import org.apache.flink.table.catalog.hive.util.HiveReflectionUtils;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.filesystem.FileSystemConnectorOptions.PartitionOrder;
 import org.apache.flink.table.filesystem.PartitionTimeExtractor;
-import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.utils.PartitionPathUtils;
 
 import org.apache.hadoop.fs.FileStatus;
@@ -62,8 +61,6 @@ public abstract class HivePartitionFetcherContextBase<P> implements HivePartitio
     protected final HiveShim hiveShim;
     protected final JobConfWrapper confWrapper;
     protected final List<String> partitionKeys;
-    protected final DataType[] fieldTypes;
-    protected final String[] fieldNames;
     protected final Configuration configuration;
     protected final String defaultPartitionName;
     protected final PartitionOrder partitionOrder;
@@ -82,16 +79,12 @@ public abstract class HivePartitionFetcherContextBase<P> implements HivePartitio
             HiveShim hiveShim,
             JobConfWrapper confWrapper,
             List<String> partitionKeys,
-            DataType[] fieldTypes,
-            String[] fieldNames,
             Configuration configuration,
             String defaultPartitionName) {
         this.tablePath = tablePath;
         this.hiveShim = hiveShim;
         this.confWrapper = confWrapper;
         this.partitionKeys = partitionKeys;
-        this.fieldTypes = fieldTypes;
-        this.fieldNames = fieldNames;
         this.configuration = configuration;
         this.defaultPartitionName = defaultPartitionName;
         this.partitionOrder = configuration.get(STREAMING_SOURCE_PARTITION_ORDER);

@@ -212,7 +212,7 @@ public class HiveCatalogDataTypeTest {
         catalog.createDatabase(db1, createDb(), false);
         catalog.createTable(path1, table, false);
 
-        assertEquals(table.getSchema(), catalog.getTable(path1).getSchema());
+        assertEquals(table.getUnresolvedSchema(), catalog.getTable(path1).getUnresolvedSchema());
     }
 
     private static CatalogDatabase createDb() {
