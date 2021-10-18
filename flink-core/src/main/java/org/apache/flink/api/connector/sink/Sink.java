@@ -129,6 +129,14 @@ public interface Sink<InputT, CommT, WriterStateT, GlobalCommT> extends Serializ
         return Collections.emptyList();
     }
 
+    /**
+     * Creates a {@link CommittableAggregator} that can aggregate committables before they are
+     * finally committed.
+     */
+    default Optional<CommittableAggregator<CommT>> createCommittableAggregator() {
+        return Optional.empty();
+    }
+
     /** The interface exposes some runtime info for creating a {@link SinkWriter}. */
     interface InitContext {
         /**
