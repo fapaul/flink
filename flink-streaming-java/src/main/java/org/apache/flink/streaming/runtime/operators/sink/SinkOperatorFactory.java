@@ -73,8 +73,10 @@ public final class SinkOperatorFactory<InputT, CommT, WriterStateT>
         Optional<SimpleVersionedSerializer<CommT>> committableSerializerOpt =
                 sink.getCommittableSerializer();
         CommitterHandler<CommT, CommT> committerHandler =
-                shouldEmit ? new ForwardCommittingHandler<>() : NoopCommitterHandler.getInstance();
-        if (!batch) {
+                shouldEmit || sink.createCommittableAggregator().isPresent()
+                        ? new ForwardCommittingHandler<>()
+                        : NoopCommitterHandler.getInstance();
+        if (!batch && !sink.createCommittableAggregator().isPresent()) {
             try {
                 Optional<Committer<CommT>> committer = sink.createCommitter();
                 if (committer.isPresent()) {
@@ -95,7 +97,7 @@ public final class SinkOperatorFactory<InputT, CommT, WriterStateT>
                         sink::createWriter,
                         writerStateHandler,
                         committerHandler,
-                        shouldEmit
+                        shouldEmit || sink.createCommittableAggregator().isPresent()
                                 ? committableSerializerOpt.orElseThrow(this::noSerializerFound)
                                 : null);
         sinkOperator.setup(

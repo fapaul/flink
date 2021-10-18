@@ -21,15 +21,20 @@ package org.apache.flink.streaming.runtime.translators;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.connector.sink.CommittableAggregator;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.dag.Transformation;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.streaming.api.graph.StreamGraph;
 import org.apache.flink.streaming.api.graph.TransformationTranslator;
 import org.apache.flink.streaming.api.operators.ChainingStrategy;
 import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.streaming.api.transformations.SinkTransformation;
+import org.apache.flink.streaming.api.transformations.StreamExchangeMode;
+import org.apache.flink.streaming.runtime.operators.sink.CommittableAggregatorOperatorFactory;
 import org.apache.flink.streaming.runtime.operators.sink.CommitterOperatorFactory;
 import org.apache.flink.streaming.runtime.operators.sink.SinkOperatorFactory;
+import org.apache.flink.streaming.runtime.partitioner.KeyGroupStreamPartitioner;
 import org.apache.flink.streaming.util.graph.StreamGraphUtils;
 import org.apache.flink.util.FlinkRuntimeException;
 
@@ -41,6 +46,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.apache.flink.util.Preconditions.checkState;
 
@@ -108,7 +114,8 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
         Sink<InputT, CommT, WriterStateT, GlobalCommT> sink = sinkTransformation.getSink();
         boolean needsCommitterOperator =
                 batch && sink.getCommittableSerializer().isPresent()
-                        || sink.getGlobalCommittableSerializer().isPresent();
+                        || sink.getGlobalCommittableSerializer().isPresent()
+                        || sink.createCommittableAggregator().isPresent();
         final int writerId =
                 addWriterAndCommitter(
                         sinkTransformation,
@@ -118,7 +125,7 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
                         context);
 
         if (needsCommitterOperator) {
-            addGlobalCommitter(writerId, sinkTransformation, batch, context);
+            addCommittableOperators(writerId, sinkTransformation, batch, context);
         }
     }
 
@@ -128,7 +135,7 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
      * @param sinkTransformation The transformation that the writer belongs to
      * @param parallelism The parallelism of the writer
      * @param batch Specifies if this sink is executed in batch mode.
-     * @param shouldEmit Specifies whether the write should emit committables.
+     * @param shouldEmit Specifies whether the writer should emit committables.
      * @return The stream node id of the writer
      */
     private int addWriterAndCommitter(
@@ -154,7 +161,7 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
             factory.setChainingStrategy(chainingStrategy);
         }
 
-        final String format = batch && shouldEmit ? "Sink %s Writer" : "Sink %s";
+        final String format = batch || shouldEmit ? "Sink %s Writer" : "Sink %s";
 
         return addOperatorToStreamGraph(
                 factory,
@@ -176,25 +183,81 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
      * @param sinkTransformation The transformation that the global committer belongs to.
      * @param batch Specifies if this sink is executed in batch mode.
      */
-    private void addGlobalCommitter(
+    private void addCommittableOperators(
             int inputId,
             SinkTransformation<InputT, CommT, WriterStateT, GlobalCommT> sinkTransformation,
             boolean batch,
             Context context) {
 
+        int committableInputId = inputId;
         Sink<InputT, CommT, WriterStateT, GlobalCommT> sink = sinkTransformation.getSink();
 
-        final String format = batch ? "Sink %s Committer" : "Sink %s Global Committer";
+        Optional<CommittableAggregator<CommT>> committableAggregator =
+                sink.createCommittableAggregator();
+        final String nameFormat =
+                batch && !committableAggregator.isPresent()
+                        ? "Sink %s Committer"
+                        : "Sink %s Global Committer";
+        final boolean needsSeparateCommitter = !(batch || committableAggregator.isPresent());
+
+        // TODO: If batch execution committableAggregator might fuse with other committer operators
+        if (committableAggregator.isPresent()) {
+            committableInputId =
+                    addOperatorToStreamGraph(
+                            new CommittableAggregatorOperatorFactory<>(sink),
+                            Collections.singletonList(inputId),
+                            TypeInformation.of(byte[].class),
+                            TypeInformation.of(byte[].class),
+                            String.format(
+                                    "Sink %s CommittableAggregator", sinkTransformation.getName()),
+                            sinkTransformation.getUid() == null
+                                    ? null
+                                    : String.format(nameFormat, sinkTransformation.getUid()),
+                            1,
+                            1,
+                            sinkTransformation,
+                            context);
+            final Optional<? extends KeySelector<CommT, ?>> keySelector =
+                    committableAggregator.get().getKeySelector();
+            if (keySelector.isPresent()) {
+                context.getStreamGraph()
+                        .addVirtualPartitionNode(
+                                committableInputId,
+                                Transformation.getNewNodeId(),
+                                new KeyGroupStreamPartitioner<>(
+                                        keySelector.get(), sinkTransformation.getMaxParallelism()),
+                                batch ? StreamExchangeMode.BATCH : StreamExchangeMode.PIPELINED);
+            }
+        }
+
+        int committerId =
+                addOperatorToStreamGraph(
+                        new CommitterOperatorFactory<>(sink, needsSeparateCommitter, batch),
+                        Collections.singletonList(committableInputId),
+                        TypeInformation.of(byte[].class),
+                        needsSeparateCommitter ? TypeInformation.of(byte[].class) : null,
+                        String.format(nameFormat, sinkTransformation.getName()),
+                        sinkTransformation.getUid() == null
+                                ? null
+                                : String.format(nameFormat, sinkTransformation.getUid()),
+                        needsSeparateCommitter ? sinkTransformation.getParallelism() : 1,
+                        needsSeparateCommitter ? sinkTransformation.getMaxParallelism() : 1,
+                        sinkTransformation,
+                        context);
+
+        if (!needsSeparateCommitter || !sink.getGlobalCommittableSerializer().isPresent()) {
+            return;
+        }
 
         addOperatorToStreamGraph(
-                new CommitterOperatorFactory<>(sink, batch),
-                Collections.singletonList(inputId),
+                new CommitterOperatorFactory<>(sink, true, true),
+                Collections.singletonList(committerId),
                 TypeInformation.of(byte[].class),
                 null,
-                String.format(format, sinkTransformation.getName()),
+                String.format("Sink %s GlobalCommitter", sinkTransformation.getName()),
                 sinkTransformation.getUid() == null
                         ? null
-                        : String.format(format, sinkTransformation.getUid()),
+                        : String.format(nameFormat, sinkTransformation.getUid()),
                 1,
                 1,
                 sinkTransformation,
@@ -246,6 +309,8 @@ public class SinkTransformationTranslator<InputT, CommT, WriterStateT, GlobalCom
                 inTypeInfo,
                 outTypInfo,
                 name);
+
+        sinkTransformation.getSink().createCommittableAggregator().get().getKeySelector();
 
         streamGraph.setParallelism(transformationId, parallelism);
         streamGraph.setMaxParallelism(transformationId, maxParallelism);

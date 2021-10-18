@@ -23,6 +23,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.BulkWriter;
 import org.apache.flink.api.common.serialization.Encoder;
+import org.apache.flink.api.connector.sink.CommittableAggregator;
 import org.apache.flink.api.connector.sink.Committer;
 import org.apache.flink.api.connector.sink.GlobalCommitter;
 import org.apache.flink.api.connector.sink.Sink;
@@ -167,6 +168,11 @@ public class FileSink<IN> implements Sink<IN, FileSinkCommittable, FileWriterBuc
     public Collection<String> getCompatibleStateNames() {
         // StreamingFileSink
         return Collections.singleton("bucket-states");
+    }
+
+    @Override
+    public Optional<CommittableAggregator<FileSinkCommittable>> createCommittableAggregator() {
+        return Optional.of(committables -> committables);
     }
 
     public static <IN> DefaultRowFormatBuilder<IN> forRowFormat(

@@ -46,11 +46,14 @@ public final class CommitterOperatorFactory<CommT, GlobalCommT>
         implements OneInputStreamOperatorFactory<byte[], byte[]> {
 
     private final Sink<?, CommT, ?, GlobalCommT> sink;
-    private final boolean batch;
+    private final boolean needsSeparateCommitter;
+    private final boolean global;
 
-    public CommitterOperatorFactory(Sink<?, CommT, ?, GlobalCommT> sink, boolean batch) {
+    public CommitterOperatorFactory(
+            Sink<?, CommT, ?, GlobalCommT> sink, boolean needsSeparateCommitter, boolean global) {
         this.sink = sink;
-        this.batch = batch;
+        this.needsSeparateCommitter = needsSeparateCommitter;
+        this.global = global;
     }
 
     @Override
@@ -62,7 +65,7 @@ public final class CommitterOperatorFactory<CommT, GlobalCommT>
                 sink.getCommittableSerializer().orElseThrow(this::noSerializerFound);
         try {
             CommitterHandler<CommT, GlobalCommT> committerHandler = getGlobalCommitterHandler();
-            if (batch) {
+            if (!needsSeparateCommitter) {
                 Optional<Committer<CommT>> committer = sink.createCommitter();
                 if (committer.isPresent()) {
                     committerHandler =
@@ -73,14 +76,28 @@ public final class CommitterOperatorFactory<CommT, GlobalCommT>
             checkState(
                     !(committerHandler instanceof NoopCommitterHandler),
                     "committer operator without commmitter");
-            final CommitterOperator<CommT, GlobalCommT> committerOperator =
-                    new CommitterOperator<>(
-                            processingTimeService, committableSerializer, committerHandler);
-            committerOperator.setup(
-                    parameters.getContainingTask(),
-                    parameters.getStreamConfig(),
-                    parameters.getOutput());
-            return (T) committerOperator;
+            if (global) {
+                final CommitterOperator<CommT, GlobalCommT> committerOperator =
+                        new CommitterOperator<>(
+                                processingTimeService, committableSerializer, committerHandler);
+                committerOperator.setup(
+                        parameters.getContainingTask(),
+                        parameters.getStreamConfig(),
+                        parameters.getOutput());
+                return (T) committerOperator;
+            } else {
+                final CommitterOperator<CommT, CommT> committerOperator =
+                        new CommitterOperator<CommT, CommT>(
+                                processingTimeService,
+                                committableSerializer,
+                                new StreamingCommitterHandler<>(
+                                        sink.createCommitter().get(), committableSerializer));
+                committerOperator.setup(
+                        parameters.getContainingTask(),
+                        parameters.getStreamConfig(),
+                        parameters.getOutput());
+                return (T) committerOperator;
+            }
         } catch (Exception e) {
             throw new IllegalStateException("Cannot create commit operator of " + sink, e);
         }
@@ -98,7 +115,7 @@ public final class CommitterOperatorFactory<CommT, GlobalCommT>
         if (!globalCommitter.isPresent()) {
             return NoopCommitterHandler.getInstance();
         }
-        if (batch) {
+        if (needsSeparateCommitter) {
             return new GlobalBatchCommitterHandler<>(globalCommitter.get());
         }
         SimpleVersionedSerializer<GlobalCommT> serializer =
