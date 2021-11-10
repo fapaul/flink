@@ -44,9 +44,17 @@ import org.elasticsearch.client.RequestOptions;
  * @param <IN> type of the records converted to Elasticsearch actions
  */
 @PublicEvolving
-public class Elasticsearch7SinkBuilder<IN> extends ElasticsearchSinkBuilderBase<IN> {
+public class Elasticsearch7SinkBuilder<IN>
+        extends ElasticsearchSinkBuilderBase<IN, Elasticsearch7SinkBuilder<IN>> {
 
     public Elasticsearch7SinkBuilder() {}
+
+    @Override
+    public <T extends IN> Elasticsearch7SinkBuilder<T> setEmitter(
+            ElasticsearchEmitter<? super T> emitter) {
+        super.<T>setEmitter(emitter);
+        return self();
+    }
 
     @Override
     public BulkRequestConsumerFactory getBulkRequestConsumer() {

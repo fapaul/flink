@@ -43,9 +43,17 @@ import org.apache.flink.annotation.PublicEvolving;
  * @param <IN> type of the records converted to Elasticsearch actions
  */
 @PublicEvolving
-public class Elasticsearch6SinkBuilder<IN> extends ElasticsearchSinkBuilderBase<IN> {
+public class Elasticsearch6SinkBuilder<IN>
+        extends ElasticsearchSinkBuilderBase<IN, Elasticsearch6SinkBuilder<IN>> {
 
     public Elasticsearch6SinkBuilder() {}
+
+    @Override
+    public <T extends IN> Elasticsearch6SinkBuilder<T> setEmitter(
+            ElasticsearchEmitter<? super T> emitter) {
+        super.<T>setEmitter(emitter);
+        return self();
+    }
 
     @Override
     public BulkRequestConsumerFactory getBulkRequestConsumer() {
