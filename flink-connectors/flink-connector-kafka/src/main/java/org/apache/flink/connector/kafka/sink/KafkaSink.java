@@ -20,12 +20,12 @@ package org.apache.flink.connector.kafka.sink;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.sink.Committer;
 import org.apache.flink.api.connector.sink.GlobalCommitter;
-import org.apache.flink.api.connector.sink.InitContextInitializationContextAdapter;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.metrics.MetricGroup;
+import org.apache.flink.util.InitContextInitializationContextAdapter;
 
 import java.io.IOException;
 import java.util.List;
