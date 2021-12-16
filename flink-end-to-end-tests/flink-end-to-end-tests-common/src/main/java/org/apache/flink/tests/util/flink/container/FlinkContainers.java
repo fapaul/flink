@@ -20,7 +20,9 @@ package org.apache.flink.tests.util.flink.container;
 
 import org.apache.flink.client.deployment.StandaloneClusterId;
 import org.apache.flink.client.program.rest.RestClusterClient;
+import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.HighAvailabilityOptions;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.core.testutils.CommonTestUtils;
 import org.apache.flink.runtime.rest.handler.legacy.messages.ClusterOverviewWithVersion;
@@ -160,6 +162,7 @@ public class FlinkContainers implements BeforeAllCallback, AfterAllCallback {
             restClusterClient.close();
         }
         this.taskManagers.forEach(GenericContainer::stop);
+        deleteJobManagerTemporaryFiles();
         this.jobManager.stop();
         if (this.haService != null) {
             this.haService.stop();
@@ -316,5 +319,28 @@ public class FlinkContainers implements BeforeAllCallback, AfterAllCallback {
                 },
                 DEFAULT_TIMEOUT,
                 "TaskManagers are not ready within 30 seconds");
+    }
+
+    private void deleteJobManagerTemporaryFiles() {
+        try {
+            String[] command = {
+                "rm",
+                "-rf",
+                Paths.get(conf.get(CheckpointingOptions.CHECKPOINTS_DIRECTORY), "*").toString(),
+                Paths.get(conf.get(HighAvailabilityOptions.HA_STORAGE_PATH), "*").toString()
+            };
+            final Container.ExecResult result = jobManager.execInContainer(command);
+            if (result.getExitCode() != 0) {
+                throw new IllegalStateException(
+                        String.format(
+                                "Command \"%s\" returned non-zero exit code %d. \nSTDOUT: %s\nSTDERR: %s",
+                                String.join(" ", command),
+                                result.getExitCode(),
+                                result.getStdout(),
+                                result.getStderr()));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete temporary files in JobManager", e);
+        }
     }
 }
