@@ -470,7 +470,7 @@ public abstract class CommonExecSink extends ExecNodeBase<Object>
                     new SinkTransformation<>(
                             applyRowtimeTransformation(
                                     inputTransform, rowtimeFieldIndex, sinkParallelism, config),
-                            ((SinkProvider) runtimeProvider).createSink(),
+                            null,
                             sinkName,
                             sinkParallelism);
             transformation.setDescription(sinkDescription);

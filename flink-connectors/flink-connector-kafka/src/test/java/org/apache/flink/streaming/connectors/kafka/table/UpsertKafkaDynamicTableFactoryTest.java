@@ -32,10 +32,8 @@ import org.apache.flink.formats.avro.RowDataToAvroConverters;
 import org.apache.flink.formats.avro.registry.confluent.ConfluentRegistryAvroSerializationSchema;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.operators.StreamOperatorFactory;
 import org.apache.flink.streaming.api.transformations.SourceTransformation;
 import org.apache.flink.streaming.connectors.kafka.config.StartupMode;
-import org.apache.flink.streaming.runtime.operators.sink.SinkOperatorFactory;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.catalog.Column;
@@ -44,14 +42,12 @@ import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.format.EncodingFormat;
-import org.apache.flink.table.connector.sink.DataStreamSinkProvider;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkProvider;
 import org.apache.flink.table.connector.source.DataStreamScanProvider;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.binary.BinaryRowData;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.TestFormatFactory;
 import org.apache.flink.table.factories.utils.FactoryMocks;
@@ -198,60 +194,6 @@ public class UpsertKafkaDynamicTableFactoryTest extends TestLogger {
         final SinkProvider sinkFunctionProvider = (SinkProvider) provider;
         final Sink<RowData, ?, ?, ?> sink = sinkFunctionProvider.createSink();
         assertThat(sink, instanceOf(KafkaSink.class));
-    }
-
-    @SuppressWarnings("rawtypes")
-    @Test
-    public void testBufferedTableSink() {
-        // Construct table sink using options and table sink factory.
-        final DynamicTableSink actualSink =
-                createTableSink(
-                        SINK_SCHEMA,
-                        getModifiedOptions(
-                                getFullSinkOptions(),
-                                options -> {
-                                    options.put("sink.buffer-flush.max-rows", "100");
-                                    options.put("sink.buffer-flush.interval", "1s");
-                                }));
-
-        final DynamicTableSink expectedSink =
-                createExpectedSink(
-                        SINK_SCHEMA.toPhysicalRowDataType(),
-                        keyEncodingFormat,
-                        valueEncodingFormat,
-                        SINK_KEY_FIELDS,
-                        SINK_VALUE_FIELDS,
-                        null,
-                        SINK_TOPIC,
-                        UPSERT_KAFKA_SINK_PROPERTIES,
-                        DeliveryGuarantee.AT_LEAST_ONCE,
-                        new SinkBufferFlushMode(100, 1000L),
-                        null);
-
-        // Test sink format.
-        final KafkaDynamicSink actualUpsertKafkaSink = (KafkaDynamicSink) actualSink;
-        assertEquals(expectedSink, actualSink);
-
-        // Test kafka producer.
-        DynamicTableSink.SinkRuntimeProvider provider =
-                actualUpsertKafkaSink.getSinkRuntimeProvider(new SinkRuntimeProviderContext(false));
-        assertThat(provider, instanceOf(DataStreamSinkProvider.class));
-        final DataStreamSinkProvider sinkProvider = (DataStreamSinkProvider) provider;
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        sinkProvider.consumeDataStream(env.fromElements(new BinaryRowData(1)));
-        final StreamOperatorFactory<?> sinkOperatorFactory =
-                env.getStreamGraph().getStreamNodes().stream()
-                        .filter(n -> n.getOperatorName().contains("Sink"))
-                        .findFirst()
-                        .orElseThrow(
-                                () ->
-                                        new RuntimeException(
-                                                "Expected operator with name Sink in stream graph."))
-                        .getOperatorFactory();
-        assertThat(sinkOperatorFactory, instanceOf(SinkOperatorFactory.class));
-        assertThat(
-                ((SinkOperatorFactory) sinkOperatorFactory).getSink(),
-                instanceOf(ReducingUpsertSink.class));
     }
 
     @Test
