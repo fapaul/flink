@@ -127,6 +127,11 @@ public class ITCaseRules {
                                                             .or(
                                                                     miniClusterWithClientResourceClassRule())
                                                             .or(
+                                                                    JavaClass.Predicates
+                                                                            .assignableTo(
+                                                                                    AbstractTestBase
+                                                                                            .class))
+                                                            .or(
                                                                     miniClusterWithClientResourceRule()))))
                     .as("ITCASE tests should use a MiniCluster resource or extension");
 
